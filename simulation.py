@@ -1,4 +1,3 @@
-import sys
 from typing import Optional
 import pickle
 
@@ -81,6 +80,10 @@ class FreeRobotManager(AbstractRobotManager):
 
 
 class Robot(pygame.sprite.Sprite):
+    WIDTH = int(24 * config.SCALING_FACTOR)
+    SIZE = (WIDTH, WIDTH)
+    radius = WIDTH // 2
+
     def __init__(self, robot_id, group, background, position, azimuth=0):
         super().__init__()
         self.id: int = robot_id
@@ -88,21 +91,19 @@ class Robot(pygame.sprite.Sprite):
         self.background: Layout = background
         self.position = position
 
-        width = int(24 * config.SCALING_FACTOR)
-        self.radius = width // 2
-
         self.color_name, color = utils.get_color()
-        self.image = pygame.Surface((width, width))
+        self.image = pygame.Surface(Robot.SIZE)
         self.image.fill(color)
-        self.image.blit(pygame.transform.smoothscale(pygame.image.load("pacman_mask.png").convert_alpha(),
-                                                     (width, width)),
+        self.image.blit(pygame.transform.smoothscale(pygame.image.load("pacman_mask.png").convert_alpha(), Robot.SIZE),
                         (0, 0), None, BLEND_RGBA_MIN)
         self.image.set_colorkey(pygame.Color("black"), RLEACCEL)
         self.original_image = self.image.copy()
 
-        self.__turn_to_azimuth(azimuth)
+        self.original_azimuth = azimuth
+        self.turn_to_azimuth(azimuth)
 
         self.just_followed_wall: Optional[pygame.sprite.Sprite] = None
+        self.in_room = False
 
         self.action_count = 0
         self.colliding_another_robot_count = 0
@@ -119,7 +120,7 @@ class Robot(pygame.sprite.Sprite):
     def __str__(self):
         return f"Robot {self.id} ({self.color_name})"
 
-    def __turn_to_azimuth(self, azimuth):
+    def turn_to_azimuth(self, azimuth):
         self.azimuth = utils.normalize_azimuth(azimuth)
         self.direction = utils.azimuth_to_direction(self.azimuth)
         self.image = pygame.transform.rotate(self.original_image, self.azimuth)
@@ -127,21 +128,14 @@ class Robot(pygame.sprite.Sprite):
         assert isinstance(self.azimuth, int)
         print(f"[{self}] turned to {self.azimuth}, {self.direction}.")
 
-    def __turn_right(self, degree=90):
-        self.__turn_to_azimuth(self.azimuth - degree)
+    def turn_right(self, degree):
+        self.turn_to_azimuth(self.azimuth - degree)
 
-    def __turn_left(self, degree=90):
-        self.__turn_to_azimuth(self.azimuth + degree)
+    def turn_left(self, degree):
+        self.turn_to_azimuth(self.azimuth + degree)
 
-    def change_direction_according_to_other_robots(self):
-        vector = pygame.Vector2()
-        for robot in self.group:
-            if robot != self:
-                vector += utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
-        vector: pygame.Vector2 = -vector  # OK to use __neg__
-        _, azimuth = vector.as_polar()
-        self.__turn_to_azimuth(int(azimuth))
-        self.just_followed_wall = None
+    def turn_back(self):
+        self.turn_to_azimuth(self.azimuth + 180)
 
     def collided_another_robot(self):
         for robot in self.group:
@@ -150,7 +144,7 @@ class Robot(pygame.sprite.Sprite):
                 return True
         return False
 
-    def __is_moving_along_wall(self):
+    def is_moving_along_wall(self):
         if self.just_followed_wall is None:  # Haven't followed a wall yet
             return True  # Regard it as following a wall
         wall = self.just_followed_wall.rect
@@ -164,7 +158,7 @@ class Robot(pygame.sprite.Sprite):
             distance = self.rect.left - wall.right
         return distance <= 0
 
-    def __get_wall_rank(self, sprite: pygame.sprite.Sprite):
+    def get_wall_rank(self, sprite: pygame.sprite.Sprite):
         wall = sprite.rect
         if self.direction == Direction.NORTH:
             return abs(wall.top - self.rect.bottom)
@@ -175,7 +169,62 @@ class Robot(pygame.sprite.Sprite):
         else:
             return abs(wall.right - self.rect.left)
 
-    def __next_action(self, distance):
+    def turn_according_to_wall(self):
+        """NOTE: Updates self.just_followed_wall."""
+        adjacent_walls = set(pygame.sprite.spritecollide(self.just_followed_wall, self.background.lines, False))
+        # adjacent_walls.discard(self.just_followed_wall)
+        self.just_followed_wall = min(adjacent_walls, key=self.get_wall_rank)
+        wall = self.just_followed_wall.rect
+        if self.direction == Direction.NORTH:
+            if wall.left > self.rect.right:
+                self.turn_right(90)
+            else:
+                self.turn_left(90)
+        elif self.direction == Direction.SOUTH:
+            if wall.left > self.rect.right:
+                self.turn_left(90)
+            else:
+                self.turn_right(90)
+        elif self.direction == Direction.WEST:
+            if wall.top > self.rect.bottom:
+                self.turn_left(90)
+            else:
+                self.turn_right(90)
+        elif self.direction == Direction.EAST:
+            if wall.top > self.rect.bottom:
+                self.turn_right(90)
+            else:
+                self.turn_left(90)
+
+    def is_revisiting_detected(self):
+        return VisitedPlace(self.position) in self.background.visited_places
+        # if self.in_room:
+        #     return False
+        # else:
+        #     return pygame.sprite.spritecollideany(VisitedPlace(self.position),
+        #                                           self.background.visited_places, pygame.sprite.collide_circle)
+
+    def act_when_colliding_wall(self):
+        """Can be overridden by subclasses."""
+        self.turn_right(self.azimuth % 90 - 90)  # TODO
+
+    def act_when_colliding_another_robot(self):
+        """Can be overridden by subclasses."""
+        self.turn_back()  # TODO
+
+    def act_when_revisiting_detected(self):
+        """Can be overridden by subclasses."""
+        vector = pygame.Vector2()
+        for robot in self.group:
+            if robot != self:
+                vector += utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+        vector: pygame.Vector2 = -vector  # OK to use __neg__
+        _, azimuth = vector.as_polar()
+        self.turn_to_azimuth(int(azimuth))
+        self.just_followed_wall = None
+
+    def next_action(self, distance):
+        """Can be overridden by subclasses to change the control logic."""
         self.action_count += 1
         old_rect = self.rect.copy()
         self.rect.move_ip(*utils.polar_to_pygame_cartesian(distance, self.azimuth))
@@ -184,45 +233,23 @@ class Robot(pygame.sprite.Sprite):
             self.rect = old_rect
             self.just_followed_wall = collided_wall
             print(f"[{self}] Colliding wall! Turning!")
-            self.__turn_right(self.azimuth % 90 - 90)  # TODO
+            self.act_when_colliding_wall()
         elif self.collided_another_robot():
             self.rect = old_rect
             print(f"[{self}] Colliding another robot! Turning!")
-            self.__turn_right(180)  # TODO
+            self.act_when_colliding_another_robot()
+        elif not self.is_moving_along_wall():  # Needs Turning
+            if self.is_revisiting_detected():
+                self.rect = old_rect
+                print(f"{self.position} has already been visited! Turning!")
+                self.act_when_revisiting_detected()
+            else:
+                self.position = self.rect.center
+                if self.in_room:
+                    self.background.visited_places.add(VisitedPlace(self.position))
+                self.turn_according_to_wall()
         else:
             self.position = self.rect.center
-            if not self.__is_moving_along_wall():  # Needs Turning
-                if self.position in self.background.visited_places:  # TODO: detect range to simulate gas
-                    print(f"{self.position} has already been visited! Turning...")
-                    self.change_direction_according_to_other_robots()
-                    return
-                else:
-                    self.background.visited_places.add(self.position)
-                adjacent_walls = set(pygame.sprite.spritecollide(self.just_followed_wall, self.background.lines, False))
-                # adjacent_walls.discard(self.just_followed_wall)
-                self.just_followed_wall = min(adjacent_walls, key=self.__get_wall_rank)
-                wall = self.just_followed_wall.rect
-                self.action_count += 1
-                if self.direction == Direction.NORTH:
-                    if wall.left > self.rect.right:
-                        self.__turn_right(90)
-                    else:
-                        self.__turn_left(90)
-                elif self.direction == Direction.SOUTH:
-                    if wall.left > self.rect.right:
-                        self.__turn_left(90)
-                    else:
-                        self.__turn_right(90)
-                elif self.direction == Direction.WEST:
-                    if wall.top > self.rect.bottom:
-                        self.__turn_left(90)
-                    else:
-                        self.__turn_right(90)
-                elif self.direction == Direction.EAST:
-                    if wall.top > self.rect.bottom:
-                        self.__turn_right(90)
-                    else:
-                        self.__turn_left(90)
 
     def update(self):
         """
@@ -231,18 +258,34 @@ class Robot(pygame.sprite.Sprite):
         NOTE: DISTANCE FOR __next_action SHOULDN'T BE TOO BIG,
               OTHERWISE IT WILL HAVE STRANGE BEHAVIOR DUE TO PRECISION LOSS OF FLOATING POINT NUMBERS!!!
         """
-        self.__next_action(self.radius)
+        self.next_action(self.radius)
         entered_rooms = pygame.sprite.spritecollide(self, self.background.rooms, False)
         if len(entered_rooms) != 0:
+            self.in_room = True
             for room in entered_rooms:
                 room.visited = True
                 room.update()
+        else:
+            self.in_room = False
         rescued_injuries = pygame.sprite.spritecollide(self, self.background.injuries, False)
         if len(rescued_injuries) != 0:
+            self.in_room = True
             for injury in rescued_injuries:
                 injury.rescued = True
                 injury.update()
+        else:
+            self.in_room = False
         self.background.display.blit(self.image, self.rect)
+
+
+class SBGARobot(Robot):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def act_when_revisiting_detected(self):
+        """According to SBGA."""
+        self.turn_to_azimuth(int(self.original_azimuth))
+        self.just_followed_wall = None
 
 
 class Line(pygame.sprite.Sprite):
@@ -265,6 +308,25 @@ class Line(pygame.sprite.Sprite):
     def __eq__(self, other):
         if isinstance(other, Line):
             return self.x1 == other.x1 and self.y2 == other.y2 and self.x2 == other.x2 and self.y2 == other.y2
+        else:
+            return False
+
+
+class VisitedPlace(pygame.sprite.Sprite):
+    radius = Robot.radius
+
+    def __init__(self, position):
+        super().__init__()
+        self.position = position
+        self.rect = pygame.Rect(position[0] - VisitedPlace.radius, position[1] - VisitedPlace.radius,
+                                Robot.WIDTH, Robot.WIDTH)
+
+    def __hash__(self):
+        return hash(self.position)
+
+    def __eq__(self, other):
+        if isinstance(other, VisitedPlace):
+            return self.position == other.position
         else:
             return False
 
@@ -353,7 +415,7 @@ class Layout:
         self.lines = pygame.sprite.Group()
         self.rooms = pygame.sprite.Group()
         self.injuries = pygame.sprite.Group()
-        self.visited_places = set()
+        self.visited_places = pygame.sprite.Group()
 
         for i in range(row_cnt):
             wall_start = 0
