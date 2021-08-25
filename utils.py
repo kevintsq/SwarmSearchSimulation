@@ -11,15 +11,35 @@ class Direction(Enum):
     WEST = auto()
     EAST = auto()
 
+    FRONT = auto()
+    BACK = auto()
+    LEFT = auto()
+    RIGHT = auto()
+
+    HORIZONTAL = auto()
+    VERTICAL = auto()
+
     def __neg__(self):
         if self == Direction.NORTH:
             return Direction.SOUTH
-        elif self == Direction.WEST:
-            return Direction.EAST
         elif self == Direction.SOUTH:
             return Direction.NORTH
-        else:
+        elif self == Direction.WEST:
+            return Direction.EAST
+        elif self == Direction.EAST:
             return Direction.WEST
+
+        elif self == Direction.FRONT:
+            return Direction.BACK
+        elif self == Direction.BACK:
+            return Direction.FRONT
+        elif self == Direction.LEFT:
+            return Direction.RIGHT
+        elif self == Direction.RIGHT:
+            return Direction.LEFT
+
+        else:
+            return self
 
 
 def polar_to_pygame_cartesian(distance, azimuth):
