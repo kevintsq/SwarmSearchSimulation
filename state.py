@@ -16,6 +16,8 @@ class State:
     def transfer_when_colliding_another_robot(self):
         self.__robot.cancel_go_front()
         print(f"[{self.__robot}] Colliding another robot! Turning!")
+        self.__robot.turn_back()  # TODO
+        self.__robot.state = self.__robot.just_started_state
 
     def transfer_when_not_following_wall(self):
         pass

@@ -3,12 +3,14 @@ class Base:
         def print(self):
             print("From Base!")
 
+    def __init__(self):
+        self.cls = self.Nested()
+
     def wrap(self):
         self.print()
 
     def print(self):
-        n = self.Nested()
-        n.print()
+        self.cls.print()
 
 
 class Derived(Base):
@@ -16,9 +18,11 @@ class Derived(Base):
         def print(self):
             print("From Derived!")
 
+    def __init__(self):
+        super().__init__()
+
     def print(self):
-        n = self.Nested()
-        n.print()
+        self.cls.print()
 
 
 d = Derived()
