@@ -221,6 +221,8 @@ class Robot(pygame.sprite.Sprite):
         vector: pygame.Vector2 = -vector  # OK to use __neg__
         _, azimuth = vector.as_polar()
         self.turn_to_azimuth(int(azimuth))
+        # self.turn_back()
+        # self.turn_to_azimuth(self.original_azimuth)
         self.just_followed_wall = None
 
     def next_action(self, distance):
@@ -313,7 +315,7 @@ class Line(pygame.sprite.Sprite):
 
 
 class VisitedPlace(pygame.sprite.Sprite):
-    radius = Robot.radius
+    radius = Robot.radius // 2
 
     def __init__(self, position):
         super().__init__()
@@ -510,10 +512,11 @@ if __name__ == '__main__':
         with open("gen_dbg.pkl", "rb") as file:
             generator = pickle.load(file)
     else:
-        generator = SiteGenerator(40, 20, 20, 10)
+        generator = SiteGenerator(80, 40, 40, 10)
     try:
         layout = Layout.from_generator(generator)
-        manager = SpreadingRobotManager(layout, 6, layout.center)
+        x, y = generator.departure_point
+        manager = SpreadingRobotManager(layout, 6, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
 
         if config.DEBUG_MODE:
             while True:
@@ -532,6 +535,8 @@ if __name__ == '__main__':
             while True:
                 for event in pygame.event.get():
                     if event.type == QUIT:
+                        with open("gen_dbg.pkl", "wb") as file:
+                            pickle.dump(generator, file)
                         pygame.quit()
                         exit()
                     elif event.type == KEYDOWN:
