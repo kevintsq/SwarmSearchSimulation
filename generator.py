@@ -20,6 +20,7 @@ class SiteGenerator:
         self.rooms = []  # [y1, x1, y2, x2]
         self.width = width
         self.height = height
+        self.departure_point = []  # [x, y]
         self.room_num = room_num
         self.room_cnt = 0
         self.injuries = injuries
@@ -95,16 +96,35 @@ class SiteGenerator:
                 self.site_array[i, j] = ord(char)
 
     def generate_corridor(self):
-        v_cor_num = random.randint(int(self.height / 20), int(self.height / 10))
+        middle_cor_x_min = (self.height - 2) // 2 - 1
+        middle_cor_x_max = (self.height - 2) // 2 + 1
+        for i in range(middle_cor_x_min, middle_cor_x_max + 1):
+            for j in range(self.width - 2):
+                self.site[i][j] = self.corridor_sign
+
+        middle_cor_y_min = (self.width - 2) // 2 - 1
+        middle_cor_y_max = (self.width - 2) // 2 + 1
+        for i in range(self.height - 2):
+            for j in range(middle_cor_y_min, middle_cor_y_max + 1):
+                self.site[i][j] = self.corridor_sign
+
+        self.v_corridor.append([middle_cor_x_min, middle_cor_x_max])
+        self.h_corridor.append([middle_cor_y_min, middle_cor_y_max])
+
+        self.departure_point = [middle_cor_x_min + 2, middle_cor_y_min + 2]
+
+        v_cor_num = random.randint(int(self.height / 20), int(self.height / 10)) - 1
         num = 0
-        x_ranges = [[0, self.height - 3]]
+        x_ranges = [[middle_cor_x_max + 1, self.height - 3], [0, middle_cor_x_min - 1]]
         while num < v_cor_num and len(x_ranges):
             index = random.randint(0, len(x_ranges) - 1)
             x_range = x_ranges[index]
             x_min = x_range[0] + self.room_min_length + 1
             x_max = x_range[1] - self.room_min_length - self.cor_min_length - 1
             if x_min > x_max:
-                raise Exception("site too small!\ntry larger length and width!")
+                del x_ranges[index]
+                continue
+                # raise Exception("site too small!\ntry larger length and width!")
             x = random.randint(x_min, x_max)
             width = random.randint(self.cor_min_length, 3)
             self.v_corridor.append([x, x + width - 1])
@@ -120,14 +140,17 @@ class SiteGenerator:
                 for j in range(self.width - 2):
                     self.site[i][j] = self.corridor_sign
 
-        h_cor_num = random.randint(int(self.width / 20), int(self.width / 10))
+        h_cor_num = random.randint(int(self.width / 20), int(self.width / 10)) - 1
         num = 0
-        y_ranges = [[0, self.width - 3]]
+        y_ranges = [[middle_cor_y_max + 1, self.width - 3], [0, middle_cor_y_min - 1]]
         while num < h_cor_num and len(y_ranges):
             index = random.randint(0, len(y_ranges) - 1)
             y_range = y_ranges[index]
             y_min = y_range[0] + self.room_min_length + 1
             y_max = y_range[1] - self.room_min_length - self.cor_min_length - 1
+            if y_min > y_max:
+                del y_ranges[index]
+                continue
             y = random.randint(y_min, y_max)
             width = random.randint(self.cor_min_length, 3)
             self.h_corridor.append([y, y + width - 1])
