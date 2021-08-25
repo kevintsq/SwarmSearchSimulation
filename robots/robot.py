@@ -47,18 +47,6 @@ class Robot(pygame.sprite.Sprite):
             robot.turn_to_azimuth(robot.original_azimuth)
             robot.state = robot.just_started_state
 
-        def transfer_to_next_state(self):
-            robot = self.get_robot()
-            robot.attempt_go_front()
-            if robot.is_colliding_wall():
-                self.transfer_when_colliding_wall()
-            elif robot.is_colliding_another_robot():
-                self.transfer_when_colliding_another_robot()
-            elif not robot.is_moving_along_wall():  # Needs Turning
-                self.transfer_when_not_following_wall()
-            else:
-                robot.commit_go_front()
-
     def __init__(self, robot_id, group, background, position, azimuth=0):
         super().__init__()
         self.id: int = robot_id
@@ -142,6 +130,10 @@ class Robot(pygame.sprite.Sprite):
     def commit_go_front(self):
         self.position = self.rect.center
         self.background.visited_places.add(VisitedPlace(self))
+
+    def go_front_not_cancellable(self):
+        self.rect.move_ip(*utils.polar_to_pygame_cartesian(Robot.radius, self.azimuth))
+        self.position = self.rect.center
 
     def get_wall_rank(self, sprite: pygame.sprite.Sprite):
         wall = sprite.rect

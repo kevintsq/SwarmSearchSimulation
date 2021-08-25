@@ -1,4 +1,9 @@
 class State:
+    """
+    Abstract State with some default methods.
+    All methods may be overridden by different states.
+    """
+
     def __init__(self, robot):
         self.__robot = robot
 
@@ -6,7 +11,15 @@ class State:
         return self.__robot
 
     def transfer_to_next_state(self):
-        pass
+        self.__robot.attempt_go_front()
+        if self.__robot.is_colliding_wall():
+            self.transfer_when_colliding_wall()
+        elif self.__robot.is_colliding_another_robot():
+            self.transfer_when_colliding_another_robot()
+        elif not self.__robot.is_moving_along_wall():  # Needs Turning
+            self.transfer_when_not_following_wall()
+        else:
+            self.__robot.commit_go_front()
 
     def transfer_when_colliding_wall(self):
         self.__robot.cancel_go_front()
@@ -20,9 +33,8 @@ class State:
         self.__robot.state = self.__robot.just_started_state
 
     def transfer_when_not_following_wall(self):
-        pass
+        self.__robot.commit_go_front()
+        self.__robot.turn_according_to_wall()
 
     def transfer_when_revisiting_places(self):
-        pass
-
-
+        print(f"{self.__robot.position} has already been visited!")

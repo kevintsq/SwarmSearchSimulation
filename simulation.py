@@ -1,6 +1,10 @@
 import pickle
 
 from robots.robot import *
+from robots.robot_using_gas import *
+from robots.robot_using_sound import *
+from robots.robot_using_gas_and_sound import *
+from robots.random_robot import *
 
 
 class AbstractRobotManager:
@@ -39,7 +43,7 @@ class SpreadingRobotManager(AbstractRobotManager):
         for i in range(self.amount, self.amount + amount):
             azimuth = 360 * i // amount
             dx, dy = utils.polar_to_pygame_cartesian(int(Line.SPAN_UNIT), azimuth)
-            self.robots.add(Robot(i, self.robots, self.background, (position[0] + dx, position[1] + dy), azimuth))
+            self.robots.add(RandomRobot(i, self.robots, self.background, (position[0] + dx, position[1] + dy), azimuth))
         self.amount += amount
 
 
