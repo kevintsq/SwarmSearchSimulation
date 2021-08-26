@@ -15,11 +15,11 @@ class RobotUsingGasAndSound(Robot):
             robot = self.get_robot()
             azimuth = robot.get_direction_according_to_others()
             diff = utils.normalize_azimuth(robot.azimuth - azimuth)
-            print(f"azimuth: {azimuth}, self: {robot.azimuth}, diff: {diff}")
+            print(f"[{robot}] azimuth: {azimuth}, self: {robot.azimuth}, diff: {diff}")
             if robot.azimuth % 90 == 0:
-                robot.turn_right(90 if diff > 0 else -90)
+                robot.turn_right(90 if diff > 0 else -90, True)
             else:
-                robot.turn_right(robot.azimuth % 90 if diff > 0 else robot.azimuth % 90 - 90)
+                robot.turn_right(robot.azimuth % 90 if diff > 0 else robot.azimuth % 90 - 90, True)
             robot.state = robot.following_wall_state
 
         def transfer_when_not_following_wall(self):
@@ -31,7 +31,6 @@ class RobotUsingGasAndSound(Robot):
             else:
                 robot.turn_to_azimuth(robot.original_azimuth)
             robot.just_followed_wall = None
-            robot.collide_turn_function = None
 
     class FollowingWallState(State):
         def __init__(self, robot):

@@ -1,4 +1,5 @@
 import pickle
+import logger
 
 from robots.robot import *
 from robots.robot_using_gas import *

@@ -95,9 +95,9 @@ class Robot(pygame.sprite.Sprite):
         assert isinstance(self.azimuth, int)
         print(f"[{self}] turned to {self.azimuth}, {self.direction}.")
 
-    def turn_right(self, degree):
+    def turn_right(self, degree, update_collide_turn_func=False):
         """NOTE: First call will set self.collide_turn_function according to the degree."""
-        if self.collide_turn_function is None:
+        if update_collide_turn_func:
             if 0 < degree < 180:
                 self.collide_turn_function = self.turn_right
             elif -179 < degree < 0:
@@ -106,9 +106,9 @@ class Robot(pygame.sprite.Sprite):
                 raise Exception(f"Illegal degree ({degree}) to set self.collide_turn_function!")
         self.turn_to_azimuth(self.azimuth - degree)
 
-    def turn_left(self, degree):
+    def turn_left(self, degree, update_collide_turn_func=False):
         """NOTE: First call will set self.collide_turn_function according to the degree."""
-        if self.collide_turn_function is None:
+        if update_collide_turn_func:
             if 0 < degree < 180:
                 self.collide_turn_function = self.turn_left
             elif -179 < degree < 0:
@@ -260,16 +260,18 @@ class Robot(pygame.sprite.Sprite):
         if len(entered_rooms) != 0:
             # self.in_room = True
             for room in entered_rooms:
-                room.visited = True
-                room.update()
+                if not room.visited:
+                    room.visited = True
+                    room.update()
         # else:
         #     self.in_room = False
         rescued_injuries = pygame.sprite.spritecollide(self, self.background.injuries, False)
         if len(rescued_injuries) != 0:
             # self.in_room = True
             for injury in rescued_injuries:
-                injury.rescued = True
-                injury.update()
+                if not injury.rescued:
+                    injury.rescued = True
+                    injury.update()
         # else:
         #     self.in_room = False
         self.background.display.blit(self.image, self.rect)
