@@ -2,7 +2,7 @@ import sys
 
 from pygame import Color
 
-DEBUG_MODE = False
+MAX_ITER = 100000
 PAUSE = False
 DARK_MODE = True
 
@@ -39,4 +39,4 @@ if sys.platform == 'win32':
         ctypes.windll.user32.SetProcessDPIAware()  # Windows 8 or less
     dpi = ctypes.windll.user32.GetDpiForSystem()
     SCALING_FACTOR = dpi / 96
-SCALING_FACTOR /= 2
+SCALING_FACTOR /= 4

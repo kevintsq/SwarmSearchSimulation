@@ -6,7 +6,7 @@ from state import *
 class RobotUsingGasAndSound(Robot):
     """Robot using Bug1-like algorithm with sound."""
 
-    class JustStartedState(State):
+    class JustStartedState(AbstractState):
         def __init__(self, robot):
             super().__init__(robot)
 
@@ -15,7 +15,7 @@ class RobotUsingGasAndSound(Robot):
             robot = self.get_robot()
             azimuth = robot.get_direction_according_to_others()
             diff = utils.normalize_azimuth(robot.azimuth - azimuth)
-            print(f"[{robot}] azimuth: {azimuth}, self: {robot.azimuth}, diff: {diff}")
+            robot.logger.debug(f"[{robot}] azimuth: {azimuth}, self: {robot.azimuth}, diff: {diff}")
             if robot.azimuth % 90 == 0:
                 robot.turn_right(90 if diff > 0 else -90, True)
             else:
@@ -32,7 +32,7 @@ class RobotUsingGasAndSound(Robot):
                 robot.turn_to_azimuth(robot.original_azimuth)
             robot.just_followed_wall = None
 
-    class FollowingWallState(State):
+    class FollowingWallState(AbstractState):
         def __init__(self, robot):
             super().__init__(robot)
 

@@ -5,14 +5,14 @@ from state import *
 class RobotUsingGas(Robot):
     """Robot using Bug1-like algorithm."""
 
-    class JustStartedState(State):
+    class JustStartedState(AbstractState):
         def __init__(self, robot):
             super().__init__(robot)
 
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()
             robot = self.get_robot()
-            robot.turn_right(robot.azimuth % 90 - 90)  # TODO
+            robot.turn_right(robot.azimuth % 90 - 90, True)  # TODO
             robot.state = robot.following_wall_state
 
         def transfer_when_not_following_wall(self):
@@ -20,7 +20,7 @@ class RobotUsingGas(Robot):
             robot.commit_go_front()
             robot.turn_to_azimuth(robot.original_azimuth)
 
-    class FollowingWallState(State):
+    class FollowingWallState(AbstractState):
         def __init__(self, robot):
             super().__init__(robot)
 

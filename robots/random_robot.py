@@ -5,7 +5,7 @@ from state import *
 
 
 class RandomRobot(Robot):
-    class JustStartedState(State):
+    class JustStartedState(AbstractState):
         def __init__(self, robot):
             super().__init__(robot)
 

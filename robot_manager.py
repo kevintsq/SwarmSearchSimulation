@@ -1,0 +1,84 @@
+import pickle
+import sys
+
+from logger import logger
+
+from robots.robot import *
+from robots.robot_using_gas import *
+from robots.robot_using_sound import *
+from robots.robot_using_gas_and_sound import *
+from robots.random_robot import *
+
+
+class AbstractRobotManager:
+    def __init__(self, robot_type, background):
+        self.robots = pygame.sprite.Group()
+        self.robot_type = robot_type
+        self.background: Layout = background
+        self.action_count = 0
+
+    def add_robot(self, *args, **kwargs):
+        """The manager must take care of the robot id."""
+        pass
+
+    def update(self):
+        """Redraw method that should be called for each frame, but must after redrawing layout."""
+        self.action_count += 1
+        self.robots.update()
+
+    def report(self):
+        return f"{self.action_count},{','.join((robot.report() for robot in self.robots))}"  # OK
+
+    def __len__(self):
+        return len(self.robots)
+
+    def __iter__(self):
+        return iter(self.robots)
+
+    def __contains__(self, item):
+        return item in self.robots
+
+    def __str__(self):
+        return str(self.robots)
+
+
+class SpreadingRobotManager(AbstractRobotManager):
+    def __init__(self, robot_type, background, amount, position):
+        super().__init__(robot_type, background)
+        self.amount = 0
+        self.add_robot(amount, position)
+
+    def add_robot(self, amount, position):
+        for i in range(self.amount, self.amount + amount):
+            azimuth = 360 * i // amount
+            dx, dy = utils.polar_to_pygame_cartesian(int(Line.SPAN_UNIT), azimuth)
+            self.robots.add(self.robot_type(i, logger, self.robots, self.background, (position[0] + dx, position[1] + dy), azimuth))
+        self.amount += amount
+
+
+class CollidingRobotManager(AbstractRobotManager):
+    def __init__(self, robot_type, background, amount, position):
+        super().__init__(robot_type, background)
+        self.amount = 0
+        self.add_robot(amount, position)
+
+    def add_robot(self, amount, position):
+        for i in range(self.amount, self.amount + amount):
+            azimuth = 360 * i // amount
+            dx, dy = utils.polar_to_pygame_cartesian(int(Line.SPAN_UNIT), azimuth)
+            self.robots.add(self.robot_type(i, logger, self.robots, self.background, (position[0] + dx, position[1] + dy), azimuth + 180))
+        self.amount += amount
+
+
+class FreeRobotManager(AbstractRobotManager):
+    def __init__(self, robot_type, background, amount, position):
+        super().__init__(robot_type, background)
+        self.amount = 0
+        self.add_robot(amount, position)
+
+    def add_robot(self, amount, position):
+        for i in range(self.amount, self.amount + amount):
+            azimuth = 360 * i // amount
+            dx, dy = utils.polar_to_pygame_cartesian(int(Line.SPAN_UNIT), azimuth)
+            self.robots.add(self.robot_type(i, logger, self.robots, self.background, (position[0] + dx, position[1] + dy)))
+        self.amount += amount

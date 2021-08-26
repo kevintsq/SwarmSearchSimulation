@@ -12,14 +12,14 @@ class Robot(pygame.sprite.Sprite):
     SIZE = (WIDTH, WIDTH)
     radius = WIDTH // 2
 
-    class JustStartedState(State):
+    class JustStartedState(AbstractState):
         def __init__(self, robot):
             super().__init__(robot)
 
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()
             robot = self.get_robot()
-            robot.turn_right(robot.azimuth % 90 - 90)  # TODO
+            robot.turn_right(robot.azimuth % 90 - 90, True)  # TODO
             robot.state = robot.following_wall_state
 
         def transfer_to_next_state(self):
@@ -32,7 +32,7 @@ class Robot(pygame.sprite.Sprite):
             else:
                 robot.commit_go_front()
 
-    class FollowingWallState(State):
+    class FollowingWallState(AbstractState):
         def __init__(self, robot):
             super().__init__(robot)
 
@@ -47,20 +47,22 @@ class Robot(pygame.sprite.Sprite):
             robot.turn_to_azimuth(robot.original_azimuth)
             robot.state = robot.just_started_state
 
-    def __init__(self, robot_id, group, background, position, azimuth=0):
+    def __init__(self, robot_id, logger, group, background: Layout, position, azimuth=0):
         super().__init__()
         self.id: int = robot_id
+        self.logger = logger
         self.group: pygame.sprite.AbstractGroup = group
-        self.background: Layout = background
+        self.background = background
         self.position = position
 
-        self.color_name, color = utils.get_color()
-        self.image = pygame.Surface(Robot.SIZE)
-        self.image.fill(color)
-        self.image.blit(pygame.transform.smoothscale(pygame.image.load("assets/pacman_mask.png").convert_alpha(), Robot.SIZE),
-                        (0, 0), None, BLEND_RGBA_MIN)
-        self.image.set_colorkey(pygame.Color("black"), RLEACCEL)
-        self.original_image = self.image.copy()
+        if background.display is not None:
+            self.color_name, color = utils.get_color()
+            self.image = pygame.Surface(Robot.SIZE)
+            self.image.fill(color)
+            self.image.blit(pygame.transform.smoothscale(pygame.image.load("assets/pacman_mask.png").convert_alpha(), Robot.SIZE),
+                            (0, 0), None, BLEND_RGBA_MIN)
+            self.image.set_colorkey(pygame.Color("black"), RLEACCEL)
+            self.original_image = self.image.copy()
 
         self.original_azimuth = azimuth
         self.turn_to_azimuth(azimuth)
@@ -73,7 +75,9 @@ class Robot(pygame.sprite.Sprite):
         self.in_room = False
 
         self.action_count = 0
-        self.colliding_another_robot_count = 0
+        self.colliding_others_count = 0
+        self.visit_room_count = 0
+        self.rescue_count = 0
 
     def __hash__(self):
         return hash(self.id)
@@ -85,15 +89,19 @@ class Robot(pygame.sprite.Sprite):
             return False
 
     def __str__(self):
-        return f"Robot {self.id} ({self.color_name})"
+        if self.background.display is not None:
+            return f"Robot {self.id} ({self.color_name})"
+        else:
+            return f"Robot {self.id}"
 
     def turn_to_azimuth(self, azimuth):
         self.azimuth = utils.normalize_azimuth(azimuth)
         self.direction = utils.azimuth_to_direction(self.azimuth)
-        self.image = pygame.transform.rotate(self.original_image, self.azimuth)
-        self.rect = self.image.get_rect(center=self.position)
+        if self.background.display is not None:
+            self.image = pygame.transform.rotate(self.original_image, self.azimuth)
+            self.rect = self.image.get_rect(center=self.position)
         assert isinstance(self.azimuth, int)
-        print(f"[{self}] turned to {self.azimuth}, {self.direction}.")
+        self.logger.debug(f"[{self}] turned to {self.azimuth}, {self.direction}.")
 
     def turn_right(self, degree, update_collide_turn_func=False):
         """NOTE: First call will set self.collide_turn_function according to the degree."""
@@ -126,7 +134,7 @@ class Robot(pygame.sprite.Sprite):
               OTHERWISE IT WILL HAVE STRANGE BEHAVIOR DUE TO PRECISION LOSS OF FLOATING POINT NUMBERS!!!
         """
         self.old_rect = self.rect.copy()
-        self.rect.move_ip(*utils.polar_to_pygame_cartesian(Robot.radius, self.azimuth))
+        self.rect.move_ip(*utils.polar_to_pygame_cartesian(Robot.radius // 2, self.azimuth))
 
     def cancel_go_front(self):
         self.rect = self.old_rect
@@ -197,7 +205,7 @@ class Robot(pygame.sprite.Sprite):
     def is_colliding_another_robot(self):
         for robot in self.group:
             if robot != self and pygame.sprite.collide_circle(robot, self):
-                self.colliding_another_robot_count += 1
+                self.colliding_others_count += 1
                 return True
         return False
 
@@ -249,7 +257,7 @@ class Robot(pygame.sprite.Sprite):
 
     def update(self):
         """
-        Redraw method that should be called for each frame.
+        Take action and redraw robot to the display. Should be called for each frame.
 
         NOTE: Drawing rooms here instead of in the manager to prevent rooms' colors covering robots.
         """
@@ -260,8 +268,8 @@ class Robot(pygame.sprite.Sprite):
         if len(entered_rooms) != 0:
             # self.in_room = True
             for room in entered_rooms:
-                if not room.visited:
-                    room.visited = True
+                if not room.visited:  # OK
+                    self.visit_room_count += 1
                     room.update()
         # else:
         #     self.in_room = False
@@ -269,9 +277,13 @@ class Robot(pygame.sprite.Sprite):
         if len(rescued_injuries) != 0:
             # self.in_room = True
             for injury in rescued_injuries:
-                if not injury.rescued:
-                    injury.rescued = True
+                if not injury.rescued:  # OK
+                    self.rescue_count += 1
                     injury.update()
         # else:
         #     self.in_room = False
-        self.background.display.blit(self.image, self.rect)
+        if self.background.display is not None:
+            self.background.display.blit(self.image, self.rect)
+
+    def report(self):
+        return f"{self.visit_room_count + self.rescue_count},{self.rescue_count},{self.colliding_others_count}"
