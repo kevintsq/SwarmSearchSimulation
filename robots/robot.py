@@ -72,6 +72,7 @@ class Robot(pygame.sprite.Sprite):
         self.following_wall_state = self.FollowingWallState(self)
         self.state = self.just_started_state
         self.just_followed_wall: Optional[pygame.sprite.Sprite] = None
+        self.just_visited_place: Optional[pygame.sprite.Sprite] = None
         self.in_room = False
 
         self.action_count = 0
@@ -90,9 +91,9 @@ class Robot(pygame.sprite.Sprite):
 
     def __str__(self):
         if self.background.display is not None:
-            return f"Robot {self.id} ({self.color_name})"
+            return f"Robot {self.id} ({self.color_name} in {self.state.__class__.__name__})"
         else:
-            return f"Robot {self.id}"
+            return f"Robot {self.id} (in {self.state.__class__.__name__})"
 
     def turn_to_azimuth(self, azimuth):
         self.azimuth = utils.normalize_azimuth(azimuth)
@@ -100,6 +101,7 @@ class Robot(pygame.sprite.Sprite):
         if self.background.display is not None:
             self.image = pygame.transform.rotate(self.original_image, self.azimuth)
             self.rect = self.image.get_rect(center=self.position)
+            self.old_rect = self.rect.copy()
         assert isinstance(self.azimuth, int)
         self.logger.debug(f"[{self}] turned to {self.azimuth}, {self.direction}.")
 
@@ -134,7 +136,7 @@ class Robot(pygame.sprite.Sprite):
               OTHERWISE IT WILL HAVE STRANGE BEHAVIOR DUE TO PRECISION LOSS OF FLOATING POINT NUMBERS!!!
         """
         self.old_rect = self.rect.copy()
-        self.rect.move_ip(*utils.polar_to_pygame_cartesian(Robot.radius // 2, self.azimuth))
+        self.rect.move_ip(*utils.polar_to_pygame_cartesian(Robot.radius, self.azimuth))
 
     def cancel_go_front(self):
         self.rect = self.old_rect
@@ -190,13 +192,27 @@ class Robot(pygame.sprite.Sprite):
             raise Exception(f"Robot [{self}] has invalid direction: {self.direction}.")
 
     def get_direction_according_to_others(self):
-        vector = pygame.Vector2()
-        for robot in self.group:
-            if robot != self:
-                vector += utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
-        vector: pygame.Vector2 = -vector  # OK to use __neg__
-        _, azimuth = vector.as_polar()
-        return int(azimuth)
+        # max_vector = pygame.Vector2()
+        # for robot in self.group:
+        #     if robot != self:
+        #         diff = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+        #         if diff.length() > max_vector.length():
+        #             max_vector = diff
+        # min_vector = pygame.Vector2()
+        # for robot in self.group:
+        #     if robot != self:
+        #         diff = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+        #         if diff.length() < min_vector.length():
+        #             min_vector = diff
+        # vector = pygame.Vector2()
+        # for robot in self.group:
+        #     if robot != self:
+        #         vector += utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+        # vector /= len(self.group) - 1
+        # vector: pygame.Vector2 = -vector  # OK to use __neg__
+        # _, azimuth = vector.as_polar()
+        # return int(azimuth)
+        return random.randint(-179, 180)
 
     def is_colliding_wall(self):
         self.collided_wall = pygame.sprite.spritecollideany(self, self.background.lines)
@@ -227,8 +243,13 @@ class Robot(pygame.sprite.Sprite):
 
     def is_revisiting_places(self):
         # return VisitedPlace(self) in self.background.visited_places
-        return pygame.sprite.spritecollideany(VisitedPlace(self),
-                                              self.background.visited_places, pygame.sprite.collide_circle)
+        place = pygame.sprite.spritecollideany(VisitedPlace(self),
+                                               self.background.visited_places, pygame.sprite.collide_circle)
+        if place is not None:
+            place.visit_count += 1  # OK
+            self.just_visited_place = place
+        return place
+
 
     def __act_when_colliding_wall(self):
         """Not practical. Do not use."""

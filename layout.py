@@ -169,10 +169,11 @@ class Line(pygame.sprite.Sprite):
 class VisitedPlace(pygame.sprite.Sprite):
     def __init__(self, robot):
         super().__init__()
-        self.position = robot.rect.center
+        self.visit_count = 0
+        self.position = robot.old_rect.center
         self.radius = robot.radius // 3
         self.rect = pygame.Rect(self.position[0] - self.radius, self.position[1] - self.radius,
-                                robot.WIDTH, robot.WIDTH)
+                                2 * self.radius, 2 * self.radius)
 
     def __hash__(self):
         return hash(self.position)

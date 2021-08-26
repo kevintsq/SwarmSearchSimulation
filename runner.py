@@ -45,11 +45,11 @@ class DebugRunner(AbstractRunner):
         pygame.display.set_caption("Simulation")
 
     def run(self):
-        with open("debug/gen_dbg_.pkl", "rb") as file:
+        with open("debug/gen_dbg.pkl", "rb") as file:
             generator: SiteGenerator = pickle.load(file)
         layout = Layout.from_generator(generator)
         x, y = generator.departure_point
-        manager = SpreadingRobotManager(RobotUsingGasAndSound, layout, 6, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
+        manager = SpreadingRobotManager(RobotUsingGas, layout, 4, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
         while True:
             for event in pygame.event.get():
                 if event.type == QUIT:
@@ -88,11 +88,11 @@ class PresentationRunner(AbstractRunner):
         pygame.display.set_caption("Simulation")
 
     def run(self):
-        generator = SiteGenerator(160, 80, 160, 10)
+        generator = SiteGenerator(120, 60, 120, 10)
         try:
             layout = Layout.from_generator(generator)
             x, y = generator.departure_point
-            manager = SpreadingRobotManager(RobotUsingGas, layout, 4, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
+            manager = SpreadingRobotManager(RobotUsingGasAndSound, layout, 8, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
             clock = pygame.time.Clock()
             frame_rate = config.DISPLAY_FREQUENCY
             while True:
@@ -121,6 +121,40 @@ class PresentationRunner(AbstractRunner):
                 pickle.dump(generator, file)
             import traceback
             traceback.print_exc()
+
+
+class DebugPresentationRunner(AbstractRunner):
+    def __init__(self):
+        pygame.init()
+        pygame.display.set_caption("Simulation")
+
+    def run(self):
+        with open("debug/gen_dbg.pkl", "rb") as file:
+            generator: SiteGenerator = pickle.load(file)
+        layout = Layout.from_generator(generator)
+        x, y = generator.departure_point
+        manager = RandomSpreadingRobotManager(RobotUsingGas, layout, 4, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
+        clock = pygame.time.Clock()
+        frame_rate = config.DISPLAY_FREQUENCY
+        while True:
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    exit()
+                elif event.type == KEYDOWN:
+                    if event.key == K_SPACE:
+                        config.PAUSE = not config.PAUSE
+                    if event.key == K_UP and frame_rate < config.DISPLAY_FREQUENCY:
+                        frame_rate += 5
+                    if event.key == K_DOWN and frame_rate > 5:
+                        frame_rate -= 5
+            if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
+                config.PAUSE = True
+            if not config.PAUSE:
+                layout.update()
+                manager.update()
+                pygame.display.update()
+                clock.tick(frame_rate)
 
 
 class StatisticPresentationRunner(AbstractRunner):
@@ -177,5 +211,5 @@ class StatisticPresentationRunner(AbstractRunner):
 
 
 if __name__ == '__main__':
-    runner = PresentationRunner()
+    runner = DebugPresentationRunner()
     runner.run()
