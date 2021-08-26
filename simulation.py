@@ -8,8 +8,9 @@ from robots.random_robot import *
 
 
 class AbstractRobotManager:
-    def __init__(self, background):
+    def __init__(self, robot_type, background):
         self.robots = pygame.sprite.Group()
+        self.robot_type = robot_type
         self.background: Layout = background
 
     def add_robot(self, *args, **kwargs):
@@ -34,8 +35,8 @@ class AbstractRobotManager:
 
 
 class SpreadingRobotManager(AbstractRobotManager):
-    def __init__(self, background, amount, position):
-        super().__init__(background)
+    def __init__(self, robot_type, background, amount, position):
+        super().__init__(robot_type, background)
         self.amount = 0
         self.add_robot(amount, position)
 
@@ -43,13 +44,13 @@ class SpreadingRobotManager(AbstractRobotManager):
         for i in range(self.amount, self.amount + amount):
             azimuth = 360 * i // amount
             dx, dy = utils.polar_to_pygame_cartesian(int(Line.SPAN_UNIT), azimuth)
-            self.robots.add(RandomRobot(i, self.robots, self.background, (position[0] + dx, position[1] + dy), azimuth))
+            self.robots.add(self.robot_type(i, self.robots, self.background, (position[0] + dx, position[1] + dy), azimuth))
         self.amount += amount
 
 
 class CollidingRobotManager(AbstractRobotManager):
-    def __init__(self, background, amount, position):
-        super().__init__(background)
+    def __init__(self, robot_type, background, amount, position):
+        super().__init__(robot_type, background)
         self.amount = 0
         self.add_robot(amount, position)
 
@@ -57,13 +58,13 @@ class CollidingRobotManager(AbstractRobotManager):
         for i in range(self.amount, self.amount + amount):
             azimuth = 360 * i // amount
             dx, dy = utils.polar_to_pygame_cartesian(int(Line.SPAN_UNIT), azimuth)
-            self.robots.add(Robot(i, self.robots, self.background, (position[0] + dx, position[1] + dy), azimuth + 180))
+            self.robots.add(self.robot_type(i, self.robots, self.background, (position[0] + dx, position[1] + dy), azimuth + 180))
         self.amount += amount
 
 
 class FreeRobotManager(AbstractRobotManager):
-    def __init__(self, background, amount, position):
-        super().__init__(background)
+    def __init__(self, robot_type, background, amount, position):
+        super().__init__(robot_type, background)
         self.amount = 0
         self.add_robot(amount, position)
 
@@ -71,7 +72,7 @@ class FreeRobotManager(AbstractRobotManager):
         for i in range(self.amount, self.amount + amount):
             azimuth = 360 * i // amount
             dx, dy = utils.polar_to_pygame_cartesian(int(Line.SPAN_UNIT), azimuth)
-            self.robots.add(Robot(i, self.robots, self.background, (position[0] + dx, position[1] + dy)))
+            self.robots.add(self.robot_type(i, self.robots, self.background, (position[0] + dx, position[1] + dy)))
         self.amount += amount
 
 
@@ -80,8 +81,8 @@ if __name__ == '__main__':
         # with open("gen_dbg.pkl", "rb") as file:
         #     generator = pickle.load(file)
         # manager = SpreadingRobotManager(layout, 6, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
-        layout = Layout.from_file("assets/layout.lay")
-        manager = SpreadingRobotManager(layout, 1, (100, 100))
+        layout = Layout.from_file("assets/test.lay")
+        manager = SpreadingRobotManager(RobotUsingGasAndSound, layout, 1, (100, 100))
         while True:
             for event in pygame.event.get():
                 if event.type == QUIT:
@@ -95,11 +96,11 @@ if __name__ == '__main__':
     else:
         generator = SiteGenerator(80, 40, 40, 10)
         try:
-            # layout = Layout.from_generator(generator)
-            # x, y = generator.departure_point
-            # manager = SpreadingRobotManager(layout, 6, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
-            layout = Layout.from_file("assets/layout.lay")
-            manager = SpreadingRobotManager(layout, 6, layout.center)
+            layout = Layout.from_generator(generator)
+            x, y = generator.departure_point
+            manager = SpreadingRobotManager(RobotUsingGasAndSound, layout, 6, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
+            # layout = Layout.from_file("assets/layout.lay")
+            # manager = SpreadingRobotManager(layout, 6, layout.center)
             clock = pygame.time.Clock()
             frame_rate = config.DISPLAY_FREQUENCY
             while True:
@@ -116,6 +117,8 @@ if __name__ == '__main__':
                             frame_rate += 5
                         if event.key == K_DOWN and frame_rate > 5:
                             frame_rate -= 5
+                if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
+                    config.PAUSE = True
                 if not config.PAUSE:
                     layout.update()
                     manager.update()

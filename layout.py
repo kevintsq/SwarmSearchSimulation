@@ -223,6 +223,4 @@ class Layout:
 
     def update(self):
         """Redraw method that should be called for each frame."""
-        # if all(self.rooms) and all(self.injuries):  # have been visited and rescued
-        #     config.PAUSE = True
         self.display.blit(self.__layout, self.rect)

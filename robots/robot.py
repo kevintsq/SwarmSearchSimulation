@@ -98,19 +98,23 @@ class Robot(pygame.sprite.Sprite):
     def turn_right(self, degree):
         """NOTE: First call will set self.collide_turn_function according to the degree."""
         if self.collide_turn_function is None:
-            if ((degree if degree > 0 else -degree) // 180) & 1:  # degree // 180 is odd
+            if 0 < degree < 180:
                 self.collide_turn_function = self.turn_right
-            else:
+            elif -179 < degree < 0:
                 self.collide_turn_function = self.turn_left
+            else:
+                raise Exception(f"Illegal degree ({degree}) to set self.collide_turn_function!")
         self.turn_to_azimuth(self.azimuth - degree)
 
     def turn_left(self, degree):
         """NOTE: First call will set self.collide_turn_function according to the degree."""
         if self.collide_turn_function is None:
-            if ((degree if degree > 0 else -degree) // 180) & 1:  # degree // 180 is odd
+            if 0 < degree < 180:
                 self.collide_turn_function = self.turn_left
-            else:
+            elif -179 < degree < 0:
                 self.collide_turn_function = self.turn_right
+            else:
+                raise Exception(f"Illegal degree ({degree}) to set self.collide_turn_function!")
         self.turn_to_azimuth(self.azimuth + degree)
 
     def turn_back(self):
@@ -177,6 +181,15 @@ class Robot(pygame.sprite.Sprite):
         else:
             raise Exception(f"Robot [{self}] has invalid direction: {self.direction}.")
 
+    def get_direction_according_to_others(self):
+        vector = pygame.Vector2()
+        for robot in self.group:
+            if robot != self:
+                vector += utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+        vector: pygame.Vector2 = -vector  # OK to use __neg__
+        _, azimuth = vector.as_polar()
+        return int(azimuth)
+
     def is_colliding_wall(self):
         self.collided_wall = pygame.sprite.spritecollideany(self, self.background.lines)
         return self.collided_wall
@@ -206,11 +219,8 @@ class Robot(pygame.sprite.Sprite):
 
     def is_revisiting_places(self):
         # return VisitedPlace(self) in self.background.visited_places
-        if self.in_room:
-            return False
-        else:
-            return pygame.sprite.spritecollideany(VisitedPlace(self),
-                                                  self.background.visited_places, pygame.sprite.collide_circle)
+        return pygame.sprite.spritecollideany(VisitedPlace(self),
+                                              self.background.visited_places, pygame.sprite.collide_circle)
 
     def __act_when_colliding_wall(self):
         """Not practical. Do not use."""
@@ -248,18 +258,18 @@ class Robot(pygame.sprite.Sprite):
         self.action_count += 1
         entered_rooms = pygame.sprite.spritecollide(self, self.background.rooms, False)
         if len(entered_rooms) != 0:
-            self.in_room = True
+            # self.in_room = True
             for room in entered_rooms:
                 room.visited = True
                 room.update()
-        else:
-            self.in_room = False
+        # else:
+        #     self.in_room = False
         rescued_injuries = pygame.sprite.spritecollide(self, self.background.injuries, False)
         if len(rescued_injuries) != 0:
-            self.in_room = True
+            # self.in_room = True
             for injury in rescued_injuries:
                 injury.rescued = True
                 injury.update()
-        else:
-            self.in_room = False
+        # else:
+        #     self.in_room = False
         self.background.display.blit(self.image, self.rect)
