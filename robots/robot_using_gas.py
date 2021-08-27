@@ -1,5 +1,3 @@
-import random
-
 import utils
 from robots.robot import Robot
 from state import *
