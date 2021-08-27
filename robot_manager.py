@@ -51,7 +51,7 @@ class SpreadingRobotManager(AbstractRobotManager):
     def add_robot(self, amount, position):
         for i in range(self.amount, self.amount + amount):
             azimuth = 360 * i // amount
-            dx, dy = utils.polar_to_pygame_cartesian(int(Line.SPAN_UNIT), azimuth)
+            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), azimuth)
             self.robots.add(self.robot_type(i, logger, self.robots, self.background, (position[0] + dx, position[1] + dy), azimuth))
         self.amount += amount
 
@@ -67,7 +67,7 @@ class RandomSpreadingRobotManager(AbstractRobotManager):
         delta = 360 // amount
         for i in range(self.amount, self.amount + amount):
             tmp = azimuth + i * delta
-            dx, dy = utils.polar_to_pygame_cartesian(int(Line.SPAN_UNIT), tmp)
+            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), tmp)
             self.robots.add(self.robot_type(i, logger, self.robots, self.background, (position[0] + dx, position[1] + dy), tmp))
         self.amount += amount
 
@@ -81,7 +81,7 @@ class CollidingRobotManager(AbstractRobotManager):
     def add_robot(self, amount, position):
         for i in range(self.amount, self.amount + amount):
             azimuth = 360 * i // amount
-            dx, dy = utils.polar_to_pygame_cartesian(int(Line.SPAN_UNIT), azimuth)
+            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), azimuth)
             self.robots.add(self.robot_type(i, logger, self.robots, self.background, (position[0] + dx, position[1] + dy), azimuth + 180))
         self.amount += amount
 
@@ -95,6 +95,6 @@ class FreeRobotManager(AbstractRobotManager):
     def add_robot(self, amount, position):
         for i in range(self.amount, self.amount + amount):
             azimuth = 360 * i // amount
-            dx, dy = utils.polar_to_pygame_cartesian(int(Line.SPAN_UNIT), azimuth)
+            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), azimuth)
             self.robots.add(self.robot_type(i, logger, self.robots, self.background, (position[0] + dx, position[1] + dy)))
         self.amount += amount

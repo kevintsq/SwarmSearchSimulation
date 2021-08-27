@@ -24,11 +24,11 @@ class AbstractState:
     def transfer_when_colliding_wall(self):
         self.__robot.cancel_go_front()
         self.__robot.just_followed_wall = self.__robot.collided_wall
-        self.__robot.logger.debug(f"[{self.__robot}] Colliding wall! Turning!")
+        self.__robot.logger.debug(f"[{self.__robot}] Collides wall! Turning!")
 
     def transfer_when_colliding_another_robot(self):
         self.__robot.cancel_go_front()
-        self.__robot.logger.debug(f"[{self.__robot}] Colliding another robot! Turning!")
+        self.__robot.logger.debug(f"[{self.__robot}] Collides another robot! Turning!")
         self.__robot.turn_right(90)  # TODO
         self.__robot.state = self.__robot.just_started_state
 
@@ -37,4 +37,4 @@ class AbstractState:
         self.__robot.turn_according_to_wall()
 
     def transfer_when_revisiting_places(self):
-        self.__robot.logger.debug(f"[{self.__robot}] finds {self.__robot.position} has already been visited!")
+        self.__robot.logger.debug(f"[{self.__robot}] Finds {self.__robot.position} has already been visited!")

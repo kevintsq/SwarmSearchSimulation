@@ -25,7 +25,7 @@ class StatisticRunner(AbstractRunner):
             try:
                 layout = Layout.from_generator(generator, enable_display=False)
                 x, y = generator.departure_point
-                manager = SpreadingRobotManager(robot_type, layout, robot_cnt, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
+                manager = SpreadingRobotManager(robot_type, layout, robot_cnt, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
                 while True:
                     if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
                         logger.info(f"{site_width},{site_height},{room_cnt},{injury_cnt},{robot_type.__name__},"
@@ -49,7 +49,7 @@ class DebugRunner(AbstractRunner):
             generator: SiteGenerator = pickle.load(file)
         layout = Layout.from_generator(generator)
         x, y = generator.departure_point
-        manager = SpreadingRobotManager(RobotUsingGas, layout, 4, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
+        manager = SpreadingRobotManager(RobotUsingGas, layout, 4, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
         while True:
             for event in pygame.event.get():
                 if event.type == QUIT:
@@ -92,7 +92,7 @@ class PresentationRunner(AbstractRunner):
         try:
             layout = Layout.from_generator(generator)
             x, y = generator.departure_point
-            manager = SpreadingRobotManager(RobotUsingGasAndSound, layout, 8, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
+            manager = SpreadingRobotManager(RobotUsingGasAndSound, layout, 8, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
             clock = pygame.time.Clock()
             frame_rate = config.DISPLAY_FREQUENCY
             while True:
@@ -133,7 +133,7 @@ class DebugPresentationRunner(AbstractRunner):
             generator: SiteGenerator = pickle.load(file)
         layout = Layout.from_generator(generator)
         x, y = generator.departure_point
-        manager = RandomSpreadingRobotManager(RobotUsingGas, layout, 4, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
+        manager = SpreadingRobotManager(RobotUsingGasAndSound, layout, 4, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
         clock = pygame.time.Clock()
         frame_rate = config.DISPLAY_FREQUENCY
         while True:
@@ -177,7 +177,7 @@ class StatisticPresentationRunner(AbstractRunner):
             try:
                 layout = Layout.from_generator(generator)
                 x, y = generator.departure_point
-                manager = SpreadingRobotManager(robot_type, layout, robot_cnt, (y * Line.SPAN_UNIT, x * Line.SPAN_UNIT))
+                manager = SpreadingRobotManager(robot_type, layout, robot_cnt, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
                 clock = pygame.time.Clock()
                 frame_rate = config.DISPLAY_FREQUENCY
                 while True:

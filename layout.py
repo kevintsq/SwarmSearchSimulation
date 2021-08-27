@@ -18,7 +18,7 @@ class Layout:
         and an list of rooms and injuries which are optional.
         """
         row_cnt, col_cnt = site.shape
-        size = int((col_cnt - 1) * Line.SPAN_UNIT), int((row_cnt - 1) * Line.SPAN_UNIT)
+        size = int((col_cnt - 1) * Wall.SPAN_UNIT), int((row_cnt - 1) * Wall.SPAN_UNIT)
         if enable_display:
             self.display = pygame.display.set_mode(size)
         else:
@@ -28,7 +28,8 @@ class Layout:
             self.rect = self.display.get_rect()
             self.center = self.rect.center
             self.layout.fill(config.BACKGROUND_COLOR)
-        self.lines = pygame.sprite.Group()
+        self.walls = pygame.sprite.Group()
+        self.doors = pygame.sprite.Group()
         self.rooms = pygame.sprite.Group()
         self.injuries = pygame.sprite.Group()
         self.visited_places = pygame.sprite.Group()
@@ -37,16 +38,18 @@ class Layout:
             wall_start = 0
             wall_started = False
             for j in range(col_cnt):
+                if site[i, j] == ord("/"):
+                    self.doors.add(Door(i, j, self))
                 if site[i, j] == ord("%"):
                     if not wall_started and j + 1 != col_cnt:
                         wall_started = True
                 else:
                     if wall_started and wall_start < j - 1:
-                        self.lines.add(Line(i, wall_start, i, j - 1, Direction.HORIZONTAL, self))
+                        self.walls.add(Wall(i, wall_start, i, j - 1, Direction.HORIZONTAL, self))
                     wall_started = False
                     wall_start = j + 1
             if wall_started and wall_start < col_cnt:
-                self.lines.add(Line(i, wall_start, i, col_cnt - 1, Direction.HORIZONTAL, self))
+                self.walls.add(Wall(i, wall_start, i, col_cnt - 1, Direction.HORIZONTAL, self))
 
         for j in range(col_cnt):
             wall_start = 0
@@ -57,11 +60,11 @@ class Layout:
                         wall_started = True
                 else:
                     if wall_started and wall_start < i - 1:
-                        self.lines.add(Line(wall_start, j, i - 1, j, Direction.VERTICAL, self))
+                        self.walls.add(Wall(wall_start, j, i - 1, j, Direction.VERTICAL, self))
                     wall_started = False
                     wall_start = i + 1
             if wall_started and wall_start < row_cnt:
-                self.lines.add(Line(wall_start, j, row_cnt - 1, j, Direction.VERTICAL, self))
+                self.walls.add(Wall(wall_start, j, row_cnt - 1, j, Direction.VERTICAL, self))
 
         if rooms is not None:
             for i, room in enumerate(rooms):
@@ -138,32 +141,51 @@ class Layout:
         return f"{self.count_visited_rooms_exclude_injuries() + rescued_cnt},{rescued_cnt}"
 
 
-class Line(pygame.sprite.Sprite):
+class Wall(pygame.sprite.Sprite):
     SPAN_UNIT = 32 * config.SCALING_FACTOR
     HALF_SPAN_UNIT = 16 * config.SCALING_FACTOR
     WIDTH = int(3 * config.SCALING_FACTOR)
 
     def __init__(self, x1, y1, x2, y2, direction, background: Layout):
         super().__init__()
-        self.x1 = int(x1 * Line.SPAN_UNIT)
-        self.y1 = int(y1 * Line.SPAN_UNIT)
-        self.x2 = int(x2 * Line.SPAN_UNIT)
-        self.y2 = int(y2 * Line.SPAN_UNIT)
+        self.x1 = int(x1 * Wall.SPAN_UNIT)
+        self.y1 = int(y1 * Wall.SPAN_UNIT)
+        self.x2 = int(x2 * Wall.SPAN_UNIT)
+        self.y2 = int(y2 * Wall.SPAN_UNIT)
         self.direction = direction
         self.rect = pygame.draw.line(background.layout,
-                                     config.FOREGROUND_COLOR, (self.y1, self.x1), (self.y2, self.x2), Line.WIDTH)
+                                     config.FOREGROUND_COLOR, (self.y1, self.x1), (self.y2, self.x2), Wall.WIDTH)
 
     def __hash__(self):
         return hash((self.x1, self.y1, self.x2, self.y2))
 
     def __eq__(self, other):
-        if isinstance(other, Line):
+        if isinstance(other, Wall):
             return self.x1 == other.x1 and self.y2 == other.y2 and self.x2 == other.x2 and self.y2 == other.y2
         else:
             return False
 
     def __str__(self):
         return f"Line({self.x1}, {self.y1}, {self.x2}, {self.y2}, {self.direction})"
+
+
+class Door(pygame.sprite.Sprite):
+    def __init__(self, x, y, background: Layout):
+        super().__init__()
+        self.rect = pygame.draw.circle(background.layout, pygame.Color("red"), (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT), Wall.HALF_SPAN_UNIT)
+        self.position = self.rect.center
+
+    def __hash__(self):
+        return hash(self.position)
+
+    def __eq__(self, other):
+        if isinstance(other, Door):
+            return self.position == other.position
+        else:
+            return False
+
+    def __str__(self):
+        return f"Door({self.position})"
 
 
 class VisitedPlace(pygame.sprite.Sprite):
@@ -189,10 +211,10 @@ class RoomArea(pygame.sprite.Sprite):
     def __init__(self, room_id, x1, y1, x2, y2, background: Layout):
         super().__init__()
         self.id = room_id
-        self.x1 = int(x1 * Line.SPAN_UNIT) + Line.WIDTH
-        self.y1 = int(y1 * Line.SPAN_UNIT) + Line.WIDTH
-        self.x2 = int(x2 * Line.SPAN_UNIT) - Line.WIDTH
-        self.y2 = int(y2 * Line.SPAN_UNIT) - Line.WIDTH
+        self.x1 = int(x1 * Wall.SPAN_UNIT) + Wall.WIDTH
+        self.y1 = int(y1 * Wall.SPAN_UNIT) + Wall.WIDTH
+        self.x2 = int(x2 * Wall.SPAN_UNIT) - Wall.WIDTH
+        self.y2 = int(y2 * Wall.SPAN_UNIT) - Wall.WIDTH
         self.background = background
         self.rect = pygame.Rect(self.x1, self.y1, self.x2 - self.x1, self.y2 - self.y1)
         self.visited = False
@@ -223,10 +245,10 @@ class InjuryArea(pygame.sprite.Sprite):
     def __init__(self, injury_id, x1, y1, x2, y2, background: Layout):
         super().__init__()
         self.id = int(injury_id)
-        self.x1 = int(x1 * Line.SPAN_UNIT) + Line.WIDTH
-        self.y1 = int(y1 * Line.SPAN_UNIT) + Line.WIDTH
-        self.x2 = int(x2 * Line.SPAN_UNIT) - Line.WIDTH
-        self.y2 = int(y2 * Line.SPAN_UNIT) - Line.WIDTH
+        self.x1 = int(x1 * Wall.SPAN_UNIT) + Wall.WIDTH
+        self.y1 = int(y1 * Wall.SPAN_UNIT) + Wall.WIDTH
+        self.x2 = int(x2 * Wall.SPAN_UNIT) - Wall.WIDTH
+        self.y2 = int(y2 * Wall.SPAN_UNIT) - Wall.WIDTH
         self.background = background
         self.rect = pygame.Rect(self.x1, self.y1, self.x2 - self.x1, self.y2 - self.y1)
         self.rescued = False

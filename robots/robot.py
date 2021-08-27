@@ -64,16 +64,16 @@ class Robot(pygame.sprite.Sprite):
             self.image.set_colorkey(pygame.Color("black"), RLEACCEL)
             self.original_image = self.image.copy()
 
-        self.original_azimuth = azimuth
-        self.turn_to_azimuth(azimuth)
-        self.collide_turn_function = None
-
         self.just_started_state = self.JustStartedState(self)
         self.following_wall_state = self.FollowingWallState(self)
         self.state = self.just_started_state
         self.just_followed_wall: Optional[pygame.sprite.Sprite] = None
         self.just_visited_place: Optional[pygame.sprite.Sprite] = None
         self.in_room = False
+
+        self.original_azimuth = azimuth
+        self.turn_to_azimuth(azimuth)
+        self.collide_turn_function = None
 
         self.action_count = 0
         self.colliding_others_count = 0
@@ -103,7 +103,7 @@ class Robot(pygame.sprite.Sprite):
             self.rect = self.image.get_rect(center=self.position)
             self.old_rect = self.rect.copy()
         assert isinstance(self.azimuth, int)
-        self.logger.debug(f"[{self}] turned to {self.azimuth}, {self.direction}.")
+        self.logger.debug(f"[{self}] Turns to {self.azimuth}, {self.direction}.")
 
     def turn_right(self, degree, update_collide_turn_func=False):
         """NOTE: First call will set self.collide_turn_function according to the degree."""
@@ -113,7 +113,7 @@ class Robot(pygame.sprite.Sprite):
             elif -179 < degree < 0:
                 self.collide_turn_function = self.turn_left
             else:
-                raise Exception(f"Illegal degree ({degree}) to set self.collide_turn_function!")
+                raise Exception(f"[{self}] Illegal degree ({degree}) to set self.collide_turn_function!")
         self.turn_to_azimuth(self.azimuth - degree)
 
     def turn_left(self, degree, update_collide_turn_func=False):
@@ -124,7 +124,7 @@ class Robot(pygame.sprite.Sprite):
             elif -179 < degree < 0:
                 self.collide_turn_function = self.turn_right
             else:
-                raise Exception(f"Illegal degree ({degree}) to set self.collide_turn_function!")
+                raise Exception(f"[{self}] Illegal degree ({degree}) to set self.collide_turn_function!")
         self.turn_to_azimuth(self.azimuth + degree)
 
     def turn_back(self):
@@ -160,11 +160,11 @@ class Robot(pygame.sprite.Sprite):
         elif self.direction == Direction.EAST:
             return abs(wall.right - self.rect.left)
         else:
-            raise Exception(f"Robot [{self}] has invalid direction: {self.direction}.")
+            raise Exception(f"[{self}] has invalid direction: {self.direction}.")
 
     def turn_according_to_wall(self):
         """NOTE: Updates self.just_followed_wall."""
-        adjacent_walls = set(pygame.sprite.spritecollide(self.just_followed_wall, self.background.lines, False))
+        adjacent_walls = set(pygame.sprite.spritecollide(self.just_followed_wall, self.background.walls, False))
         # adjacent_walls.discard(self.just_followed_wall)
         self.just_followed_wall = min(adjacent_walls, key=self.get_wall_rank)
         wall = self.just_followed_wall.rect
@@ -189,33 +189,48 @@ class Robot(pygame.sprite.Sprite):
             else:
                 self.turn_left(90)
         else:
-            raise Exception(f"Robot [{self}] has invalid direction: {self.direction}.")
+            raise Exception(f"[{self}] has invalid direction: {self.direction}.")
+
+    def get_farthest_vector(self):
+        max_vector = pygame.Vector2()
+        for robot in self.group:
+            if robot != self:
+                diff = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+                if diff.length() > max_vector.length():
+                    max_vector = diff
+        return max_vector
+
+    def get_nearest_vector(self):
+        min_vector = None
+        for robot in self.group:
+            if robot != self:
+                diff = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+                if min_vector is None:
+                    min_vector = diff
+                elif diff.length() < min_vector.length():
+                    min_vector = diff
+        return min_vector
 
     def get_direction_according_to_others(self):
-        # max_vector = pygame.Vector2()
-        # for robot in self.group:
-        #     if robot != self:
-        #         diff = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
-        #         if diff.length() > max_vector.length():
-        #             max_vector = diff
-        # min_vector = pygame.Vector2()
-        # for robot in self.group:
-        #     if robot != self:
-        #         diff = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
-        #         if diff.length() < min_vector.length():
-        #             min_vector = diff
-        # vector = pygame.Vector2()
-        # for robot in self.group:
-        #     if robot != self:
-        #         vector += utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
-        # vector /= len(self.group) - 1
+        # if self.in_room:
+        #     door = min(self.background.doors, key=lambda d: utils.pygame_cartesian_diff_vec(d.position, self.position).length())
+        #     vector = utils.pygame_cartesian_diff_vec(door.position, self.position)
+        # else:
+        vector = pygame.Vector2()
+        for robot in self.group:
+            if robot != self:
+                diff = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+                if diff.length() > 64 * config.SCALING_FACTOR:
+                    vector += diff
+                else:
+                    vector -= diff
         # vector: pygame.Vector2 = -vector  # OK to use __neg__
-        # _, azimuth = vector.as_polar()
-        # return int(azimuth)
-        return random.randint(-179, 180)
+        _, azimuth = vector.as_polar()
+        return int(azimuth)
+        # return random.randint(-179, 180)
 
     def is_colliding_wall(self):
-        self.collided_wall = pygame.sprite.spritecollideany(self, self.background.lines)
+        self.collided_wall = pygame.sprite.spritecollideany(self, self.background.walls)
         return self.collided_wall
 
     def is_colliding_another_robot(self):
@@ -238,7 +253,7 @@ class Robot(pygame.sprite.Sprite):
         elif self.direction == Direction.EAST:
             distance = self.rect.left - wall.right
         else:
-            raise Exception(f"Robot [{self}] has invalid direction: {self.direction}.")
+            raise Exception(f"[{self}] has invalid direction: {self.direction}.")
         return distance <= 0
 
     def is_revisiting_places(self):
@@ -249,7 +264,6 @@ class Robot(pygame.sprite.Sprite):
             place.visit_count += 1  # OK
             self.just_visited_place = place
         return place
-
 
     def __act_when_colliding_wall(self):
         """Not practical. Do not use."""
@@ -287,22 +301,22 @@ class Robot(pygame.sprite.Sprite):
         self.action_count += 1
         entered_rooms = pygame.sprite.spritecollide(self, self.background.rooms, False)
         if len(entered_rooms) != 0:
-            # self.in_room = True
+            self.in_room = True
             for room in entered_rooms:
                 if not room.visited:  # OK
                     self.visit_room_count += 1
                     room.update()
-        # else:
-        #     self.in_room = False
+        else:
+            self.in_room = False
         rescued_injuries = pygame.sprite.spritecollide(self, self.background.injuries, False)
         if len(rescued_injuries) != 0:
-            # self.in_room = True
+            self.in_room = True
             for injury in rescued_injuries:
                 if not injury.rescued:  # OK
                     self.rescue_count += 1
                     injury.update()
-        # else:
-        #     self.in_room = False
+        else:
+            self.in_room = False
         if self.background.display is not None:
             self.background.display.blit(self.image, self.rect)
 
