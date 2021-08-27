@@ -45,6 +45,7 @@ class Robot(pygame.sprite.Sprite):
             robot = self.get_robot()
             robot.commit_go_front()
             robot.turn_to_azimuth(robot.original_azimuth)
+            robot.just_followed_wall = None
             robot.state = robot.just_started_state
 
     def __init__(self, robot_id, logger, group, background: Layout, position, azimuth=0):
