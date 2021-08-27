@@ -219,18 +219,18 @@ class Robot(pygame.sprite.Sprite):
         #     door = min(self.background.doors, key=lambda d: utils.pygame_cartesian_diff_vec(d.position, self.position).length())
         #     vector = utils.pygame_cartesian_diff_vec(door.position, self.position)
         # else:
-        vector = pygame.Vector2()
-        for robot in self.group:
-            if robot != self:
-                diff = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
-                if diff.length() > 64 * config.SCALING_FACTOR:
-                    vector += diff
-                else:
-                    vector -= diff
-        vector: pygame.Vector2 = -vector  # OK to use __neg__
-        _, azimuth = vector.as_polar()
-        return int(azimuth)
-        # return random.randint(-179, 180)
+        # vector = pygame.Vector2()
+        # for robot in self.group:
+        #     if robot != self:
+        #         diff = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+        #         if diff.length() > 64 * config.SCALING_FACTOR:
+        #             vector += diff
+        #         else:
+        #             vector -= diff
+        # vector: pygame.Vector2 = -vector  # OK to use __neg__
+        # _, azimuth = vector.as_polar()
+        # return int(azimuth)
+        return random.randint(-179, 180)
 
     def is_colliding_wall(self):
         self.collided_wall = pygame.sprite.spritecollideany(self, self.background.walls)
