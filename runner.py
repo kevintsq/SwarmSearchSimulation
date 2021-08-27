@@ -25,10 +25,11 @@ class StatisticRunner(AbstractRunner):
             try:
                 layout = Layout.from_generator(generator, enable_display=False)
                 x, y = generator.departure_point
-                manager = RandomSpreadingRobotManager(robot_type, layout, robot_cnt, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
+                manager = RandomSpreadingRobotManager(robot_type, layout, robot_cnt,
+                                                      (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
                 while True:
-                    # if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
-                    if manager.action_count == 10000:
+                    if all(layout.rooms) and all(layout.injuries) or manager.action_count == 10000:
+                        # have been visited and rescued
                         logger.info(f"{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
                                     f"{robot_type.__name__},{robot_cnt},{layout.report()},{manager.report()}")
                         break
