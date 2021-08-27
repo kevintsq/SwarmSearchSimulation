@@ -101,7 +101,9 @@ class Robot(pygame.sprite.Sprite):
         if self.background.display is not None:
             self.image = pygame.transform.rotate(self.original_image, self.azimuth)
             self.rect = self.image.get_rect(center=self.position)
-            self.old_rect = self.rect.copy()
+        else:
+            self.rect = pygame.Rect(self.position[0] - self.radius, self.position[1] - self.radius, self.radius * 2, self.radius * 2)
+        self.old_rect = self.rect.copy()
         assert isinstance(self.azimuth, int)
         self.logger.debug(f"[{self}] Turns to {self.azimuth}, {self.direction}.")
 
@@ -224,7 +226,7 @@ class Robot(pygame.sprite.Sprite):
                     vector += diff
                 else:
                     vector -= diff
-        # vector: pygame.Vector2 = -vector  # OK to use __neg__
+        vector: pygame.Vector2 = -vector  # OK to use __neg__
         _, azimuth = vector.as_polar()
         return int(azimuth)
         # return random.randint(-179, 180)

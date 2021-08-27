@@ -1,5 +1,6 @@
 import random
 
+import utils
 from robots.robot import Robot
 from state import *
 
@@ -22,7 +23,8 @@ class RobotUsingGas(Robot):
             robot.commit_go_front()
             if robot.just_visited_place is not None and robot.just_visited_place.visit_count >= 3:
                 robot.just_visited_place.visit_count = 0
-                robot.turn_to_azimuth(random.randint(-179, 180))
+                robot.original_azimuth = utils.normalize_azimuth(robot.original_azimuth + 180)
+                robot.turn_to_azimuth(robot.original_azimuth)
             else:
                 robot.turn_to_azimuth(robot.original_azimuth)
 

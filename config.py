@@ -2,7 +2,7 @@ import sys
 
 from pygame import Color
 
-MAX_ITER = 100000
+MAX_ITER = 100
 PAUSE = False
 DARK_MODE = True
 

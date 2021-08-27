@@ -71,17 +71,18 @@ class Layout:
                 self.rooms.add(RoomArea(i + 1, *room, self))  # assert len(room) == 4
 
         if injuries is not None:
-            InjuryArea.AVAILABLE_IMAGES = (
-                pygame.transform.smoothscale(pygame.image.load("assets/ghost_blue.png").convert_alpha(),
-                                             (InjuryArea.WIDTH, InjuryArea.WIDTH)),
-                pygame.transform.smoothscale(pygame.image.load("assets/ghost_green.png").convert_alpha(),
-                                             (InjuryArea.WIDTH, InjuryArea.WIDTH)),
-                pygame.transform.smoothscale(pygame.image.load("assets/ghost_orange.png").convert_alpha(),
-                                             (InjuryArea.WIDTH, InjuryArea.WIDTH)),
-                pygame.transform.smoothscale(pygame.image.load("assets/ghost_red.png").convert_alpha(),
-                                             (InjuryArea.WIDTH, InjuryArea.WIDTH)))
-            for img in InjuryArea.AVAILABLE_IMAGES:
-                img.set_colorkey(pygame.Color("black"), RLEACCEL)
+            if self.display is not None:
+                InjuryArea.AVAILABLE_IMAGES = (
+                    pygame.transform.smoothscale(pygame.image.load("assets/ghost_blue.png").convert_alpha(),
+                                                 (InjuryArea.WIDTH, InjuryArea.WIDTH)),
+                    pygame.transform.smoothscale(pygame.image.load("assets/ghost_green.png").convert_alpha(),
+                                                 (InjuryArea.WIDTH, InjuryArea.WIDTH)),
+                    pygame.transform.smoothscale(pygame.image.load("assets/ghost_orange.png").convert_alpha(),
+                                                 (InjuryArea.WIDTH, InjuryArea.WIDTH)),
+                    pygame.transform.smoothscale(pygame.image.load("assets/ghost_red.png").convert_alpha(),
+                                                 (InjuryArea.WIDTH, InjuryArea.WIDTH)))
+                for img in InjuryArea.AVAILABLE_IMAGES:
+                    img.set_colorkey(pygame.Color("black"), RLEACCEL)
             for i, injury in enumerate(injuries):
                 self.injuries.add(InjuryArea(i + 1, *injury, self))
 

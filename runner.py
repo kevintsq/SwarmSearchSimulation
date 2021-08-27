@@ -11,12 +11,12 @@ class AbstractRunner(ABC):
 
 class StatisticRunner(AbstractRunner):
     def run(self):
-        robot_cnt = 6
+        robot_cnt = 8
         logger.info(
             "site_width,site_height,room_cnt,injury_cnt,robot_type,robot_cnt,room_visited,injury_rescued,total_action_cnt,"
             f"{','.join(('robot_{}_visits,robot_{}_rescues,robot_{}_collides'.format(i, i, i) for i in range(robot_cnt)))}")
         for i in range(config.MAX_ITER):
-            site_width, site_height, room_cnt, injury_cnt, robot_type = 80, 40, 40, 10, RobotUsingGasAndSound
+            site_width, site_height, room_cnt, injury_cnt, robot_type = 120, 60, 120, 10, RobotUsingGas
             try:
                 generator = SiteGenerator(site_width, site_height, room_cnt, injury_cnt)
             except:
@@ -25,11 +25,12 @@ class StatisticRunner(AbstractRunner):
             try:
                 layout = Layout.from_generator(generator, enable_display=False)
                 x, y = generator.departure_point
-                manager = SpreadingRobotManager(robot_type, layout, robot_cnt, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
+                manager = RandomSpreadingRobotManager(robot_type, layout, robot_cnt, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
                 while True:
-                    if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
-                        logger.info(f"{site_width},{site_height},{room_cnt},{injury_cnt},{robot_type.__name__},"
-                                    f"{robot_cnt},{layout.report()},{manager.report()}")
+                    # if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
+                    if manager.action_count == 10000:
+                        logger.info(f"{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
+                                    f"{robot_type.__name__},{robot_cnt},{layout.report()},{manager.report()}")
                         break
                     manager.update()
             except Exception:
@@ -133,7 +134,7 @@ class DebugPresentationRunner(AbstractRunner):
             generator: SiteGenerator = pickle.load(file)
         layout = Layout.from_generator(generator)
         x, y = generator.departure_point
-        manager = SpreadingRobotManager(RobotUsingGasAndSound, layout, 4, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
+        manager = RandomSpreadingRobotManager(RobotUsingGas, layout, 8, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
         clock = pygame.time.Clock()
         frame_rate = config.DISPLAY_FREQUENCY
         while True:
@@ -211,5 +212,5 @@ class StatisticPresentationRunner(AbstractRunner):
 
 
 if __name__ == '__main__':
-    runner = DebugPresentationRunner()
+    runner = StatisticRunner()
     runner.run()

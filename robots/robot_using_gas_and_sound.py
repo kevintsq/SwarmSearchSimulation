@@ -25,15 +25,8 @@ class RobotUsingGasAndSound(Robot):
         def transfer_when_not_following_wall(self):
             robot = self.get_robot()
             robot.commit_go_front()
-            azimuth = robot.get_direction_according_to_others()
-            if azimuth != utils.normalize_azimuth(robot.azimuth + 180) and azimuth != 0:
-                robot.turn_to_azimuth(azimuth)
-                robot.just_followed_wall = None
-            else:
-                robot.turn_to_azimuth(robot.original_azimuth)
-                robot.just_followed_wall = None
-                # robot.turn_according_to_wall()
-                # robot.state = robot.following_wall_state
+            robot.turn_according_to_wall()
+            robot.state = robot.following_wall_state
 
     class FollowingWallState(AbstractState):
         def __init__(self, robot):
@@ -56,7 +49,14 @@ class RobotUsingGasAndSound(Robot):
             super().transfer_when_revisiting_places()
             robot = self.get_robot()
             robot.commit_go_front()
-            robot.turn_according_to_wall()
+            # robot.turn_according_to_wall()  # TODO
+            azimuth = robot.get_direction_according_to_others()
+            if azimuth != utils.normalize_azimuth(robot.azimuth + 180) and azimuth != 0:
+                robot.turn_to_azimuth(azimuth)
+                robot.just_followed_wall = None
+            else:
+                robot.turn_to_azimuth(robot.original_azimuth)
+                robot.just_followed_wall = None
             robot.state = robot.just_started_state
 
     def __init__(self, *args, **kwargs):
