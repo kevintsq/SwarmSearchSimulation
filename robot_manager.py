@@ -12,6 +12,7 @@ class AbstractRobotManager:
         self.logger = logger
         self.background: Layout = background
         self.action_count = 0
+        self.first_injury_action_count = 0
 
     def add_robot(self, *args, **kwargs):
         """The manager must take care of the robot id."""
@@ -20,10 +21,19 @@ class AbstractRobotManager:
     def update(self):
         """Redraw method that should be called for each frame, but must after redrawing layout."""
         self.action_count += 1
+        if self.first_injury_action_count == 0 and any(self.robots):
+            self.first_injury_action_count = self.action_count
         self.robots.update()
 
-    def report(self):
+    def report_search(self):
         return f"{self.action_count},{','.join((robot.report() for robot in self.robots))}"  # OK
+
+    def report_gather(self):
+        count = 0
+        for robot in self.robots:
+            if robot.mission_complete:  # OK
+                count += 1
+        return f"{self.action_count - self.first_injury_action_count},{count}"
 
     def __len__(self):
         return len(self.robots)
@@ -36,6 +46,9 @@ class AbstractRobotManager:
 
     def __str__(self):
         return str(self.robots)
+
+    def __bool__(self):
+        return all(self.robots)
 
 
 class SpreadingRobotManager(AbstractRobotManager):

@@ -11,7 +11,7 @@ import numpy as np
 
 
 class SiteGenerator:
-    def __init__(self, width: int, height: int, room_num: int, injuries: int):
+    def __init__(self, width: int, height: int, room_num: int, injuries: int, delete_fill=False):
         self.site = []
         self.site_array = np.zeros((height, width))
         self.v_corridor = []
@@ -31,27 +31,13 @@ class SiteGenerator:
         self.cor_min_length = 2
 
         self.wall_sign = "%"
-        self.door_sign = "/"
+        self.outer_door_sign = "/"
+        self.inner_door_sign = "#"
         self.corridor_sign = " "
 
-        self.generate()
+        self.generate(delete_fill)
 
-    def print(self, no_fill=True):
-        if no_fill:
-            for i in range(1, self.height - 1):
-                for j in range(1, self.width - 1):
-                    if self.site[i][j] == self.wall_sign and self.deletable(i, j):
-                        self.site[i][j] = " "
-            for room in self.rooms:
-                x_min = room[0]
-                x_max = room[1]
-                y_min = room[2]
-                y_max = room[3]
-                self.site[x_min + 1][y_min + 1] = self.wall_sign
-                self.site[x_min + 1][y_max + 1] = self.wall_sign
-                self.site[x_max + 1][y_min + 1] = self.wall_sign
-                self.site[x_max + 1][y_max + 1] = self.wall_sign
-
+    def print(self):
         for i in range(0, self.height):
             for j in range(0, self.width):
                 print(self.site[i][j], end="")
@@ -60,6 +46,21 @@ class SiteGenerator:
         print(f"{self.room_cnt} rooms generated! "
               f"range: [A, {chr(ord('A') + self.room_cnt - 1)}]")
         print(f"{self.injuries} injuries generated! range: [0, {self.injuries - 1}]")
+
+    def delete_fill(self):
+        for i in range(1, self.height - 1):
+            for j in range(1, self.width - 1):
+                if self.site[i][j] == self.wall_sign and self.deletable(i, j):
+                    self.site[i][j] = " "
+        for room in self.rooms:
+            x_min = room[0]
+            x_max = room[1]
+            y_min = room[2]
+            y_max = room[3]
+            self.site[x_min + 1][y_min + 1] = self.wall_sign
+            self.site[x_min + 1][y_max + 1] = self.wall_sign
+            self.site[x_max + 1][y_min + 1] = self.wall_sign
+            self.site[x_max + 1][y_max + 1] = self.wall_sign
 
     def print_original(self):
         for row in self.site:
@@ -77,7 +78,7 @@ class SiteGenerator:
             return False
         return True
 
-    def generate(self):
+    def generate(self, delete_fill=False):
         # 创建数组
         self.site = [[self.wall_sign for _ in range(self.width - 2)] for _ in range(self.height - 2)]
         # 生成走廊
@@ -90,7 +91,8 @@ class SiteGenerator:
         self.put_injuries()
         # 封闭
         self.enclose()
-        # self.print()
+        if delete_fill:
+            self.delete_fill()
         for i, line in enumerate(self.site):
             for j, char in enumerate(line):
                 self.site_array[i, j] = ord(char)
@@ -205,7 +207,7 @@ class SiteGenerator:
             for j in range(y_min, y_max + 1):
                 if self.site[i][j] == self.wall_sign:
                     if j + 1 <= self.width - 3:
-                        if self.site[i][j + 1] == self.door_sign:
+                        if self.site[i][j + 1] == self.outer_door_sign:
                             up = 2
                         elif self.site[i][j + 1] == self.wall_sign:
                             up = 0
@@ -214,7 +216,7 @@ class SiteGenerator:
                     else:
                         up = 0
                     if j - 1 >= 0:
-                        if self.site[i][j - 1] == self.door_sign:
+                        if self.site[i][j - 1] == self.outer_door_sign:
                             down = 2
                         elif self.site[i][j - 1] == self.wall_sign:
                             down = 0
@@ -223,7 +225,7 @@ class SiteGenerator:
                     else:
                         down = 0
                     if i + 1 <= self.height - 3:
-                        if self.site[i + 1][j] == self.door_sign:
+                        if self.site[i + 1][j] == self.outer_door_sign:
                             right = 2
                         elif self.site[i + 1][j] == self.wall_sign:
                             right = 0
@@ -232,7 +234,7 @@ class SiteGenerator:
                     else:
                         right = 0
                     if i - 1 >= 0:
-                        if self.site[i - 1][j] == self.door_sign:
+                        if self.site[i - 1][j] == self.outer_door_sign:
                             left = 2
                         elif self.site[i - 1][j] == self.wall_sign:
                             left = 0
@@ -275,29 +277,32 @@ class SiteGenerator:
                 del black_lists[i]
                 continue
             door = all_edges[random.randint(0, len(all_edges) - 1)]
+            door_x = door[0]
+            door_y = door[1]
+            outer_door = door_x == space[0] or door_x == space[1] or door_y == space[2] or door_y == space[3]
             if door in down_edge:
-                if not self.generate_upside_room(space, door, number):
+                if not self.generate_upside_room(space, door, number, outer_door):
                     black_lists[i].append(door)
                 else:
                     num += 1
             elif door in up_edge:
-                if not self.generate_downside_room(space, door, number):
+                if not self.generate_downside_room(space, door, number, outer_door):
                     black_lists[i].append(door)
                 else:
                     num += 1
             elif door in right_edge:
-                if not self.generate_leftside_room(space, door, number):
+                if not self.generate_leftside_room(space, door, number, outer_door):
                     black_lists[i].append(door)
                 else:
                     num += 1
             else:
-                if not self.generate_rightside_room(space, door, number):
+                if not self.generate_rightside_room(space, door, number, outer_door):
                     black_lists[i].append(door)
                 else:
                     num += 1
         self.room_cnt = num
 
-    def generate_upside_room(self, boundary: list, door: list, number):
+    def generate_upside_room(self, boundary: list, door: list, number, outer_door: bool):
         door_x = door[0]
         door_y = door[1]
         y = door_y + 1
@@ -332,7 +337,7 @@ class SiteGenerator:
         room_y_max = random.randint(door_y + 2, door_y + max_width + 1)
 
         # print
-        self.site[door_x][door_y] = self.door_sign
+        self.site[door_x][door_y] = self.outer_door_sign if outer_door else self.inner_door_sign
         for i in range(room_x_min + 1, room_x_max):
             for j in range(door_y + 1, room_y_max):
                 self.site[i][j] = number
@@ -340,7 +345,7 @@ class SiteGenerator:
         self.rooms.append([room_x_min, room_x_max, door_y, room_y_max])
         return True
 
-    def generate_downside_room(self, boundary: list, door: list, number):
+    def generate_downside_room(self, boundary: list, door: list, number, outer_door: bool):
         door_x = door[0]
         door_y = door[1]
         y = door_y - 1
@@ -375,7 +380,7 @@ class SiteGenerator:
         room_y_min = random.randint(door_y - max_width - 1, door_y - 2)
 
         # print
-        self.site[door_x][door_y] = self.door_sign
+        self.site[door_x][door_y] = self.outer_door_sign if outer_door else self.inner_door_sign
         for i in range(room_x_min + 1, room_x_max):
             for j in range(door_y - 1, room_y_min, -1):
                 self.site[i][j] = number
@@ -383,7 +388,7 @@ class SiteGenerator:
         self.rooms.append([room_x_min, room_x_max, room_y_min, door_y])
         return True
 
-    def generate_rightside_room(self, boundary: list, door: list, number):
+    def generate_rightside_room(self, boundary: list, door: list, number, outer_door: bool):
         door_x = door[0]
         door_y = door[1]
         x = door_x + 1
@@ -418,7 +423,7 @@ class SiteGenerator:
         room_x_max = random.randint(door_x + 2, door_x + max_length + 1)
 
         # print
-        self.site[door_x][door_y] = self.door_sign
+        self.site[door_x][door_y] = self.outer_door_sign if outer_door else self.inner_door_sign
         for i in range(door_x + 1, room_x_max):
             for j in range(room_y_min + 1, room_y_max):
                 self.site[i][j] = number
@@ -426,7 +431,7 @@ class SiteGenerator:
         self.rooms.append([door_x, room_x_max, room_y_min, room_y_max])
         return True
 
-    def generate_leftside_room(self, boundary: list, door: list, number):
+    def generate_leftside_room(self, boundary: list, door: list, number, outer_door: bool):
         door_x = door[0]
         door_y = door[1]
         x = door_x - 1
@@ -461,7 +466,7 @@ class SiteGenerator:
         room_x_min = random.randint(door_x - max_length - 1, door_x - 2)
 
         # print
-        self.site[door_x][door_y] = self.door_sign
+        self.site[door_x][door_y] = self.outer_door_sign if outer_door else self.inner_door_sign
         for i in range(door_x - 1, room_x_min, -1):
             for j in range(room_y_min + 1, room_y_max):
                 self.site[i][j] = number
@@ -491,9 +496,7 @@ class SiteGenerator:
 
 
 if __name__ == '__main__':
-    gen = SiteGenerator(32, 20, 20, 10)
-    gen.generate()
+    gen = SiteGenerator(40, 20, 10, 10, True)
     gen.print_original()
-    gen.print(True)
     print(gen.rooms)
     print(gen.injuries)

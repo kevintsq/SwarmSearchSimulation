@@ -167,7 +167,7 @@ class Wall(pygame.sprite.Sprite):
             return False
 
     def __str__(self):
-        return f"Line({self.x1}, {self.y1}, {self.x2}, {self.y2}, {self.direction})"
+        return f"Wall({self.x1}, {self.y1}, {self.x2}, {self.y2}, {self.direction})"
 
 
 class Door(pygame.sprite.Sprite):

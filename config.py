@@ -39,4 +39,4 @@ if sys.platform == 'win32':
         ctypes.windll.user32.SetProcessDPIAware()  # Windows 8 or less
     dpi = ctypes.windll.user32.GetDpiForSystem()
     SCALING_FACTOR = dpi / 96
-    SCALING_FACTOR /= 3
+    SCALING_FACTOR /= 1.5

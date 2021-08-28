@@ -18,6 +18,10 @@ class AbstractState:
             self.transfer_when_colliding_another_robot()
         elif not self.__robot.is_moving_along_wall():  # Needs Turning
             self.transfer_when_not_following_wall()
+        elif self.__robot.is_found_injuries():
+            self.transfer_when_found_injuries()
+        elif self.__robot.is_others_found_injuries():
+            self.transfer_when_others_found_injuries()
         else:
             self.__robot.commit_go_front()
 
@@ -38,3 +42,27 @@ class AbstractState:
 
     def transfer_when_revisiting_places(self):
         self.__robot.logger.debug(f"[{self.__robot}] Finds {self.__robot.position} has already been visited!")
+
+    def transfer_when_found_injuries(self):
+        self.__robot.commit_go_front()
+        self.__robot.in_room = True
+        for injury in self.__robot.found_injuries:
+            if not injury.rescued:  # OK
+                self.__robot.rescue_count += 1
+                injury.update()
+        self.__robot.mission_complete = True
+        self.__robot.state = self.__robot.found_injury_state
+
+    def transfer_when_others_found_injuries(self):
+        self.__robot.commit_go_front()
+        self.__robot.state = self.__robot.gathering_state
+        self.__robot.collide_turn_function = None
+
+    def __hash__(self):
+        return hash(self.__class__.__name__)
+
+    def __eq__(self, other):
+        if isinstance(other, AbstractState):
+            return self.__class__.__name__ == other.__class__.__name__
+        else:
+            return False

@@ -10,6 +10,7 @@ class Robot(pygame.sprite.Sprite):
 
     WIDTH = int(24 * config.SCALING_FACTOR)
     SIZE = (WIDTH, WIDTH)
+    GATHER_THRESHOLD = WIDTH * 10
     radius = WIDTH // 2
 
     class JustStartedState(AbstractState):
@@ -48,6 +49,20 @@ class Robot(pygame.sprite.Sprite):
             robot.just_followed_wall = None
             robot.state = robot.just_started_state
 
+    class FoundInjuryState(AbstractState):
+        def __init__(self, robot):
+            super().__init__(robot)
+
+        def transfer_to_next_state(self):
+            robot = self.get_robot()
+            robot.attempt_go_front()
+            if robot.mission_complete or robot.is_colliding_wall() or robot.is_colliding_another_robot():
+                robot.cancel_go_front()
+            elif robot.is_leaving_gathering_circle():
+                robot.cancel_go_front()
+            else:
+                robot.commit_go_front()
+
     def __init__(self, robot_id, logger, group, background: Layout, position, azimuth=0):
         super().__init__()
         self.id: int = robot_id
@@ -67,19 +82,26 @@ class Robot(pygame.sprite.Sprite):
 
         self.just_started_state = self.JustStartedState(self)
         self.following_wall_state = self.FollowingWallState(self)
+        self.found_injury_state = self.FoundInjuryState(self)
         self.state = self.just_started_state
-        self.just_followed_wall: Optional[pygame.sprite.Sprite] = None
+
+        self.collided_wall = None
+        self.just_followed_wall: Optional[pygame.sprite.Sprite] = None  # Only update after colliding wall.
         self.just_visited_place: Optional[pygame.sprite.Sprite] = None
         self.in_room = False
 
         self.original_azimuth = azimuth
         self.turn_to_azimuth(azimuth)
         self.collide_turn_function = None
+        self.gathering_position = None
+        self.gathering_azimuth = None
 
         self.action_count = 0
         self.colliding_others_count = 0
         self.visit_room_count = 0
         self.rescue_count = 0
+        self.found_injuries = None
+        self.mission_complete = False
 
     def __hash__(self):
         return hash(self.id)
@@ -96,8 +118,11 @@ class Robot(pygame.sprite.Sprite):
         else:
             return f"Robot {self.id} (in {self.state.__class__.__name__})"
 
+    def __bool__(self):
+        return self.mission_complete
+
     def turn_to_azimuth(self, azimuth):
-        self.azimuth = utils.normalize_azimuth(azimuth)
+        self.azimuth = utils.normalize_azimuth(int(azimuth))
         self.direction = utils.azimuth_to_direction(self.azimuth)
         if self.background.display is not None:
             self.image = pygame.transform.rotate(self.original_image, self.azimuth)
@@ -105,11 +130,9 @@ class Robot(pygame.sprite.Sprite):
         else:
             self.rect = pygame.Rect(self.position[0] - self.radius, self.position[1] - self.radius, self.radius * 2, self.radius * 2)
         self.old_rect = self.rect.copy()
-        assert isinstance(self.azimuth, int)
         self.logger.debug(f"[{self}] Turns to {self.azimuth}, {self.direction}.")
 
     def turn_right(self, degree, update_collide_turn_func=False):
-        """NOTE: First call will set self.collide_turn_function according to the degree."""
         if update_collide_turn_func:
             if 0 < degree < 180:
                 self.collide_turn_function = self.turn_right
@@ -120,7 +143,6 @@ class Robot(pygame.sprite.Sprite):
         self.turn_to_azimuth(self.azimuth - degree)
 
     def turn_left(self, degree, update_collide_turn_func=False):
-        """NOTE: First call will set self.collide_turn_function according to the degree."""
         if update_collide_turn_func:
             if 0 < degree < 180:
                 self.collide_turn_function = self.turn_left
@@ -130,7 +152,12 @@ class Robot(pygame.sprite.Sprite):
                 raise Exception(f"[{self}] Illegal degree ({degree}) to set self.collide_turn_function!")
         self.turn_to_azimuth(self.azimuth + degree)
 
-    def turn_back(self):
+    def turn_back(self, reset_collide_turn_func=False):
+        if reset_collide_turn_func:
+            if self.collide_turn_function == self.turn_left:
+                self.collide_turn_function = self.turn_right
+            elif self.collide_turn_function == self.turn_right:
+                self.collide_turn_function = self.turn_left
         self.turn_to_azimuth(self.azimuth + 180)
 
     def attempt_go_front(self):
@@ -198,19 +225,17 @@ class Robot(pygame.sprite.Sprite):
         max_vector = pygame.Vector2()
         for robot in self.group:
             if robot != self:
-                diff = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+                diff = utils.pygame_cartesian_diff_vec(self.rect.center, robot.rect.center)
                 if diff.length() > max_vector.length():
                     max_vector = diff
         return max_vector
 
-    def get_nearest_vector(self):
+    def get_nearest_vector(self, group):
         min_vector = None
-        for robot in self.group:
-            if robot != self:
-                diff = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
-                if min_vector is None:
-                    min_vector = diff
-                elif diff.length() < min_vector.length():
+        for sprite in group:
+            if sprite != self:
+                diff = utils.pygame_cartesian_diff_vec(self.rect.center, sprite.rect.center)
+                if min_vector is None or diff.length() < min_vector.length():
                     min_vector = diff
         return min_vector
 
@@ -293,6 +318,32 @@ class Robot(pygame.sprite.Sprite):
             else:
                 self.turn_right(self.azimuth + 90)
 
+    def is_found_injuries(self):
+        self.found_injuries = pygame.sprite.spritecollide(self, self.background.injuries, False)
+        return len(self.found_injuries) != 0
+
+    def is_finish_gathering(self):
+        return pygame.sprite.collide_circle(self, self.found_injuries[0]) or \
+            utils.pygame_cartesian_diff_vec(self.position, self.found_injuries[0].rect.center).length() < Robot.GATHER_THRESHOLD
+
+    def is_leaving_gathering_circle(self):
+        return utils.pygame_cartesian_diff_vec(self.position, self.found_injuries[0].rect.center).length() > Robot.GATHER_THRESHOLD
+
+    def get_gathering_vector(self) -> pygame.Vector2:
+        if self.in_room:
+            return self.get_nearest_vector(self.background.doors)
+        else:
+            return utils.pygame_cartesian_diff_vec(self.rect.center, self.gathering_position)
+
+    def is_others_found_injuries(self):
+        for robot in self.group:
+            if robot != self and robot.state == self.found_injury_state:
+                self.found_injuries = robot.found_injuries  # OK
+                self.gathering_position = robot.rect.center
+                _, self.gathering_azimuth = self.get_gathering_vector().as_polar()
+                return True
+        return False
+
     def update(self):
         """
         Take action and redraw robot to the display. Should be called for each frame.
@@ -300,25 +351,17 @@ class Robot(pygame.sprite.Sprite):
         NOTE: Drawing rooms here instead of in the manager to prevent rooms' colors covering robots.
         """
         self.state.transfer_to_next_state()
-        # self.next_action()
         self.action_count += 1
         entered_rooms = pygame.sprite.spritecollide(self, self.background.rooms, False)
+        # self.logger.debug(f"[{self}] entered_rooms == {entered_rooms}")
+        # self.logger.debug(f"[{self}] in_room == {self.in_room}")
         if len(entered_rooms) != 0:
             self.in_room = True
             for room in entered_rooms:
                 if not room.visited:  # OK
                     self.visit_room_count += 1
                     room.update()
-        else:
-            self.in_room = False
-        rescued_injuries = pygame.sprite.spritecollide(self, self.background.injuries, False)
-        if len(rescued_injuries) != 0:
-            self.in_room = True
-            for injury in rescued_injuries:
-                if not injury.rescued:  # OK
-                    self.rescue_count += 1
-                    injury.update()
-        else:
+        else:  # FIXME: need to change
             self.in_room = False
         if self.background.display is not None:
             self.background.display.blit(self.image, self.rect)
