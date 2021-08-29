@@ -145,7 +145,9 @@ class RobotUsingGasAndSound(RobotUsingGas, RobotUsingSound):
             self.just_visited_place.visit_count = 0
             self.just_followed_wall = None
             self.collide_turn_function = None
-            return random.randint(-179, 180)
+            # return random.randint(-179, 180)
+            self.original_azimuth = utils.normalize_azimuth(self.original_azimuth + 180)
+            return self.original_azimuth  # TODO
         else:
             vector = pygame.Vector2()
             for robot in self.group:

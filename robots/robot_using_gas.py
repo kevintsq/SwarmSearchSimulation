@@ -23,6 +23,7 @@ class RobotUsingGas(Robot):
                 robot.original_azimuth = utils.normalize_azimuth(robot.original_azimuth + 180)
             robot.turn_to_azimuth(robot.original_azimuth)
             robot.just_followed_wall = None
+            robot.collide_turn_function = None
 
         def transfer_to_next_state(self):
             robot: RobotUsingGas = self.get_robot()

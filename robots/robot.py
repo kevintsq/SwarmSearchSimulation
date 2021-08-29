@@ -47,6 +47,7 @@ class Robot(pygame.sprite.Sprite):
             robot.commit_go_front()
             robot.turn_to_azimuth(robot.original_azimuth)
             robot.just_followed_wall = None
+            robot.collide_turn_function = None
             robot.state = robot.just_started_state
 
     class FoundInjuryState(AbstractState):
