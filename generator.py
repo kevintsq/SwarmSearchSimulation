@@ -20,7 +20,8 @@ class SiteGenerator:
         self.rooms = []  # [y1, x1, y2, x2]
         self.width = width
         self.height = height
-        self.departure_point = []  # [x, y]
+        self.central_departure_point = []  # [x, y]
+        self.edge_departure_point = []
         self.room_num = room_num
         self.room_cnt = 0
         self.injuries = injuries
@@ -98,13 +99,13 @@ class SiteGenerator:
                 self.site_array[i, j] = ord(char)
 
     def generate_corridor(self):
-        middle_cor_x_min = (self.height - 2) // 2 - 1
+        middle_cor_x_min = (self.height - 2) // 2 - 2
         middle_cor_x_max = (self.height - 2) // 2 + 1
         for i in range(middle_cor_x_min, middle_cor_x_max + 1):
             for j in range(self.width - 2):
                 self.site[i][j] = self.corridor_sign
 
-        middle_cor_y_min = (self.width - 2) // 2 - 1
+        middle_cor_y_min = (self.width - 2) // 2 - 2
         middle_cor_y_max = (self.width - 2) // 2 + 1
         for i in range(self.height - 2):
             for j in range(middle_cor_y_min, middle_cor_y_max + 1):
@@ -113,7 +114,9 @@ class SiteGenerator:
         self.v_corridor.append([middle_cor_x_min, middle_cor_x_max])
         self.h_corridor.append([middle_cor_y_min, middle_cor_y_max])
 
-        self.departure_point = [middle_cor_x_min + 2, middle_cor_y_min + 2]
+        self.central_departure_point = [(middle_cor_x_min + middle_cor_x_max) / 2,
+                                        (middle_cor_y_min + middle_cor_y_max) / 2]
+        self.edge_departure_point = [(middle_cor_x_min + middle_cor_x_max) / 2, 1.5]
 
         v_cor_num = random.randint(int(self.height / 20), int(self.height / 10)) - 1
         num = 0
@@ -126,7 +129,6 @@ class SiteGenerator:
             if x_min > x_max:
                 del x_ranges[index]
                 continue
-                # raise Exception("site too small!\ntry larger length and width!")
             x = random.randint(x_min, x_max)
             width = random.randint(self.cor_min_length, 3)
             self.v_corridor.append([x, x + width - 1])
@@ -493,6 +495,8 @@ class SiteGenerator:
             item.append(self.wall_sign)
         self.site.insert(0, [self.wall_sign for _ in range(self.width)])
         self.site.append([self.wall_sign for _ in range(self.width)])
+        self.central_departure_point = [pos + 1 for pos in self.central_departure_point]
+        self.edge_departure_point = [pos + 1 for pos in self.edge_departure_point]
 
 
 if __name__ == '__main__':
