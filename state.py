@@ -59,7 +59,7 @@ class AbstractState:
             self.__robot.gathering_position = self.__robot.background.departure_position
             self.__robot.found_injuries = [self.__robot.background.departure_place]
         self.__robot.state = self.__robot.gathering_state
-        self.__robot.collide_turn_function = None
+        self.__robot.collide_turn_function = None  # because need to be updated
 
     def __str__(self):
         return self.__class__.__name__

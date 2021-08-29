@@ -37,14 +37,14 @@ class StatisticRunner(AbstractRunner):
                                                       depart_from_edge=False, initial_gather_mode=False)
                 while not (layout or manager.action_count >= 4000):
                     manager.update()
-                    if manager.action_count % 5 == 0:
+                    if manager.action_count % 10 == 0:
                         self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
                                          f"Center,{robot_type.__name__},{robot_cnt},Search,{layout.report()},NA,"
                                          f"{manager.report_search()}")
                 manager.enter_gathering_mode()
                 while not (manager or manager.action_count - manager.first_injury_action_count >= 1000):
                     manager.update()
-                    if manager.action_count % 5 == 0:
+                    if manager.action_count % 10 == 0:
                         self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
                                          f"Center,{robot_type.__name__},{robot_cnt},Return,{layout.report()},"
                                          f"{manager.report_gather()},{manager.report_search()}")
@@ -229,7 +229,7 @@ class StatisticPresentationRunner(AbstractRunner):
             "no,site_width,site_height,room_cnt,injury_cnt,departure_position,"
             "robot_type,robot_cnt,mode,room_visited,injury_rescued,returned,total_action_cnt,"
             f"{','.join(('robot_{}_visits,robot_{}_rescues,robot_{}_collides'.format(i, i, i) for i in range(robot_cnt)))}")
-        site_width, site_height, room_cnt, injury_cnt, robot_type = 80, 40, 60, 10, RobotUsingGasAndSound
+        site_width, site_height, room_cnt, injury_cnt, robot_type = 60, 30, 30, 10, RobotUsingGasAndSound
         generator = SiteGenerator(site_width, site_height, room_cnt, injury_cnt)
         try:
             layout = Layout.from_generator(generator, depart_from_edge=False)

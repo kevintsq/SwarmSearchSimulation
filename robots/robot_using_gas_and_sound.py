@@ -112,6 +112,7 @@ class RobotUsingGasAndSound(RobotUsingGas, RobotUsingSound):
             robot.cancel_go_front()
             robot.logger.debug(f"[{robot}] Collides another robot! Turning!")
             robot.turn_right(90)  # TODO
+            robot.collide_turn_function = None  # because need to be updated
 
         def transfer_when_not_following_wall(self):
             robot: RobotUsingGasAndSound = self.get_robot()
