@@ -76,6 +76,11 @@ class RobotUsingGas(Robot):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.just_visited_place: Optional[pygame.sprite.Sprite] = None
+
+    def commit_go_front(self):
+        self.position = self.rect.center
+        self.background.visited_places.add(VisitedPlace(self))
 
     def is_revisiting_places(self):
         # return VisitedPlace(self) in self.background.visited_places

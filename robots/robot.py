@@ -86,7 +86,6 @@ class Robot(pygame.sprite.Sprite):
 
         self.collided_wall = None
         self.just_followed_wall: Optional[pygame.sprite.Sprite] = None  # Only update after colliding wall.
-        self.just_visited_place: Optional[pygame.sprite.Sprite] = None
         self.in_room = False
 
         self.original_azimuth = azimuth
@@ -173,7 +172,6 @@ class Robot(pygame.sprite.Sprite):
 
     def commit_go_front(self):
         self.position = self.rect.center
-        self.background.visited_places.add(VisitedPlace(self))
 
     def go_front_not_cancellable(self):
         self.rect.move_ip(*utils.polar_to_pygame_cartesian(Robot.radius, self.azimuth))

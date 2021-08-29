@@ -1,3 +1,3 @@
 no,site_width,site_height,room_cnt,injury_cnt,robot_type,robot_cnt,mode,room_visited,injury_rescued,returned,total_action_cnt,robot_0_visits,robot_0_rescues,robot_0_collides,robot_1_visits,robot_1_rescues,robot_1_collides,robot_2_visits,robot_2_rescues,robot_2_collides,robot_3_visits,robot_3_rescues,robot_3_collides,robot_4_visits,robot_4_rescues,robot_4_collides,robot_5_visits,robot_5_rescues,robot_5_collides,robot_6_visits,robot_6_rescues,robot_6_collides,robot_7_visits,robot_7_rescues,robot_7_collides
-0,120,60,120,10,RobotUsingGasAndSound,8,Search,47,4,NA,500,5,1,0,7,1,0,9,0,0,4,1,0,7,1,0,6,0,0,4,0,0,5,0,0
-0,120,60,120,10,RobotUsingGasAndSound,8,Return,51,4,NA,1000,5,1,0,7,1,0,11,0,0,4,1,340,8,1,0,7,0,242,4,0,341,5,0,0
+0,120,60,120,10,RobotUsingGasAndSound,8,Search,40,3,NA,500,7,0,0,4,0,0,5,0,0,5,0,0,4,1,0,6,1,0,5,1,0,4,0,0
+0,120,60,120,10,RobotUsingGasAndSound,8,Return,46,3,NA,1000,8,0,1,4,0,0,7,0,143,6,0,0,5,1,0,6,1,4,6,1,0,4,0,0
