@@ -44,11 +44,11 @@ class StatisticRunner(AbstractRunner):
             traceback.print_exc()
 
     def dispatch(self):
-        robot_cnt = 8
+        robot_max_cnt = 8
         self.logger.info(
             "no,site_width,site_height,room_cnt,injury_cnt,departure_position,"
             "robot_type,robot_cnt,mode,room_visited,injury_rescued,returned,total_action_cnt,"
-            f"{','.join(('robot_{}_visits,robot_{}_rescues,robot_{}_collides'.format(i, i, i) for i in range(robot_cnt)))}")
+            f"{','.join(('robot_{}_visits,robot_{}_rescues,robot_{}_collides'.format(i, i, i) for i in range(robot_max_cnt)))}")
         site_width, site_height, room_cnt, injury_cnt = 120, 60, 120, 10
         for i in range(config.MAX_ITER):
             try:
