@@ -128,7 +128,7 @@ class RobotUsingGasAndSound(RobotUsingGas, RobotUsingSound):
             if robot.is_finish_gathering():
                 robot.mission_complete = True
                 robot.state = robot.found_injury_state
-            if robot.is_colliding_wall():
+            elif robot.is_colliding_wall():
                 self.transfer_when_colliding_wall()
             elif robot.is_colliding_another_robot():
                 self.transfer_when_colliding_another_robot()

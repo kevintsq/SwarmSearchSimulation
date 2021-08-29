@@ -35,7 +35,7 @@ class StatisticRunner(AbstractRunner):
                 layout = Layout.from_generator(generator, enable_display=False, depart_from_edge=False)
                 manager = RandomSpreadingRobotManager(robot_type, self.logger, layout, robot_cnt,
                                                       depart_from_edge=False, initial_gather_mode=False)
-                while not (layout or manager.action_count >= 3750):
+                while not (layout or manager.action_count >= 4000):
                     manager.update()
                     if manager.action_count % 5 == 0:
                         self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
