@@ -34,7 +34,7 @@ class StatisticRunner(AbstractRunner):
             try:
                 layout = Layout.from_generator(generator, enable_display=False, depart_from_edge=False)
                 manager = RandomSpreadingRobotManager(robot_type, self.logger, layout, robot_cnt,
-                                                      initial_gather_mode=False)
+                                                      depart_from_edge=False, initial_gather_mode=False)
                 while not (layout or manager.action_count >= 3750):
                     manager.update()
                     if manager.action_count % 5 == 0:
@@ -71,9 +71,9 @@ class GatheringStatisticRunner(AbstractRunner):
                 print(f"Generation {i} failed. Skipped.", file=sys.stderr)
                 continue
             try:
-                layout = Layout.from_generator(generator, enable_display=False)
+                layout = Layout.from_generator(generator, enable_display=False, depart_from_edge=False)
                 manager = RandomSpreadingRobotManager(robot_type, self.logger, layout, robot_cnt,
-                                                      initial_gather_mode=True)
+                                                      depart_from_edge=False, initial_gather_mode=True)
                 while True:
                     if manager or manager.first_injury_action_count != 0 and \
                             manager.action_count - manager.first_injury_action_count >= 1000:
@@ -99,8 +99,9 @@ class DebugRunner(AbstractRunner):
     def run(self):
         with open("debug/gen_dbg.pkl", "rb") as file:
             generator: SiteGenerator = pickle.load(file)
-        layout = Layout.from_generator(generator)
-        manager = SpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 8, initial_gather_mode=False)
+        layout = Layout.from_generator(generator, depart_from_edge=False)
+        manager = SpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 8,
+                                        depart_from_edge=False, initial_gather_mode=False)
         while True:
             for event in pygame.event.get():
                 if event.type == QUIT:
@@ -122,7 +123,8 @@ class TestRunner(AbstractRunner):
 
     def run(self):
         layout = Layout.from_file("assets/test.lay")
-        manager = SpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 1, initial_gather_mode=False)
+        manager = SpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 1,
+                                        depart_from_edge=False, initial_gather_mode=False)
         while True:
             for event in pygame.event.get():
                 if event.type == QUIT:
@@ -188,8 +190,9 @@ class DebugPresentationRunner(AbstractRunner):
     def run(self):
         with open("debug/gen_dbg.pkl", "rb") as file:
             generator: SiteGenerator = pickle.load(file)
-        layout = Layout.from_generator(generator)
-        manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 8, initial_gather_mode=True)
+        layout = Layout.from_generator(generator, depart_from_edge=False)
+        manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 8,
+                                              depart_from_edge=False, initial_gather_mode=True)
         clock = pygame.time.Clock()
         frame_rate = config.DISPLAY_FREQUENCY
         while True:
@@ -233,8 +236,9 @@ class StatisticPresentationRunner(AbstractRunner):
                 print(f"Generation {i} failed. Skipped.", file=sys.stderr)
                 continue
             try:
-                layout = Layout.from_generator(generator)
-                manager = SpreadingRobotManager(robot_type, self.logger, layout, robot_cnt, initial_gather_mode=False)
+                layout = Layout.from_generator(generator, depart_from_edge=False)
+                manager = SpreadingRobotManager(robot_type, self.logger, layout, robot_cnt,
+                                                depart_from_edge=False, initial_gather_mode=False)
                 clock = pygame.time.Clock()
                 frame_rate = config.DISPLAY_FREQUENCY
                 while True:
