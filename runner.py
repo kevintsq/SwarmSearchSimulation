@@ -229,7 +229,7 @@ class StatisticPresentationRunner(AbstractRunner):
             "no,site_width,site_height,room_cnt,injury_cnt,departure_position,"
             "robot_type,robot_cnt,mode,room_visited,injury_rescued,returned,total_action_cnt,"
             f"{','.join(('robot_{}_visits,robot_{}_rescues,robot_{}_collides'.format(i, i, i) for i in range(robot_cnt)))}")
-        site_width, site_height, room_cnt, injury_cnt, robot_type = 120, 60, 120, 10, RobotUsingGasAndSound
+        site_width, site_height, room_cnt, injury_cnt, robot_type = 80, 40, 60, 10, RobotUsingGasAndSound
         generator = SiteGenerator(site_width, site_height, room_cnt, injury_cnt)
         try:
             layout = Layout.from_generator(generator, depart_from_edge=False)

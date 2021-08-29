@@ -50,6 +50,20 @@ class Robot(pygame.sprite.Sprite):
             robot.collide_turn_function = None
             robot.state = robot.just_started_state
 
+        def transfer_to_next_state(self):
+            robot: Robot = self.get_robot()
+            robot.attempt_go_front()
+            if robot.is_colliding_wall():
+                self.transfer_when_colliding_wall()
+            elif robot.is_colliding_another_robot():
+                self.transfer_when_colliding_another_robot()
+            elif not robot.is_moving_along_wall():  # Needs Turning
+                self.transfer_when_not_following_wall()
+            elif robot.is_found_injuries():
+                self.transfer_when_found_injuries()
+            else:
+                robot.commit_go_front()
+
     class FoundInjuryState(AbstractState):
         def __init__(self, robot):
             super().__init__(robot)
@@ -319,14 +333,13 @@ class Robot(pygame.sprite.Sprite):
                     room.update()
         else:  # FIXME: need to change
             self.in_room = False
-        if self.gathering_position is None:
-            rescued_injuries = pygame.sprite.spritecollide(self, self.background.injuries, False)
-            if len(rescued_injuries) != 0:
-                self.in_room = True
-                for injury in rescued_injuries:
-                    if not injury.rescued:  # OK
-                        self.rescue_count += 1
-                        injury.update()
+        rescued_injuries = pygame.sprite.spritecollide(self, self.background.injuries, False)
+        if len(rescued_injuries) != 0:
+            self.in_room = True
+            for injury in rescued_injuries:
+                if not injury.rescued:  # OK
+                    self.rescue_count += 1
+                    injury.update()
         if self.background.display is not None:
             self.background.display.blit(self.image, self.rect)
 
