@@ -29,6 +29,7 @@ class AbstractRobotManager(ABC):
         if self.first_injury_action_count == 0 and any(self.robots):
             self.first_injury_action_count = self.action_count
         self.robots.update()
+        pygame.display.set_caption(f"Action {self.action_count}")
 
     def enter_gathering_mode(self):
         self.first_injury_action_count = self.action_count
@@ -70,7 +71,7 @@ class SpreadingRobotManager(AbstractRobotManager):
     def add_robot(self, amount, position):
         for i in range(self.amount, self.amount + amount):
             azimuth = (180 if self.depart_from_edge else 360) * i // amount
-            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), azimuth)
+            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT * 2), azimuth)
             self.robots.add(self.robot_type(i, self.logger, self.robots, self.background,
                                             (position[0] + dx, position[1] + dy), azimuth, self.initial_gather_mode))
         self.amount += amount
@@ -88,7 +89,7 @@ class RandomSpreadingRobotManager(AbstractRobotManager):
             azimuth = utils.normalize_azimuth(initial_bias + i * delta)
             if azimuth < 0:
                 azimuth += 180
-            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), azimuth)
+            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT * 2), azimuth)
             self.robots.add(self.robot_type(i, self.logger, self.robots, self.background,
                                             (position[0] + dx, position[1] + dy), azimuth, self.initial_gather_mode))
         self.amount += amount
@@ -104,7 +105,7 @@ class CollidingRobotManager(AbstractRobotManager):
     def add_robot(self, amount, position):
         for i in range(self.amount, self.amount + amount):
             azimuth = (180 if self.depart_from_edge else 360) * i // amount
-            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), azimuth)
+            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT * 2), azimuth)
             self.robots.add(self.robot_type(i, self.logger, self.robots, self.background,
                                             (position[0] + dx, position[1] + dy),
                                             azimuth + 180, self.initial_gather_mode))
@@ -119,7 +120,7 @@ class FreeRobotManager(AbstractRobotManager):
     def add_robot(self, amount, position):
         for i in range(self.amount, self.amount + amount):
             azimuth = (180 if self.depart_from_edge else 360) * i // amount
-            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), azimuth)
+            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT * 2), azimuth)
             self.robots.add(self.robot_type(i, self.logger, self.robots, self.background,
                                             (position[0] + dx, position[1] + dy),
                                             initial_gather_mode=self.initial_gather_mode))

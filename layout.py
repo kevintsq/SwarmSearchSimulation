@@ -39,6 +39,7 @@ class Layout:
         self.rooms = pygame.sprite.Group()
         self.injuries = pygame.sprite.Group()
         self.visited_places = pygame.sprite.Group()
+        self.departure_place = DeparturePlace(*self.departure_position, self)
 
         for i in range(row_cnt):
             wall_start = 0
@@ -183,6 +184,26 @@ class Wall(pygame.sprite.Sprite):
 
     def __str__(self):
         return f"Wall({self.x1}, {self.y1}, {self.x2}, {self.y2}, {self.direction})"
+
+
+class DeparturePlace(pygame.sprite.Sprite):
+    def __init__(self, x, y, background: Layout):
+        super().__init__()
+        self.rect = pygame.draw.circle(background.layout, pygame.Color("green"), (x, y), Wall.HALF_SPAN_UNIT)
+        self.radius = Wall.HALF_SPAN_UNIT
+        self.position = self.rect.center
+
+    def __hash__(self):
+        return hash(self.position)
+
+    def __eq__(self, other):
+        if isinstance(other, Door):
+            return self.position == other.position
+        else:
+            return False
+
+    def __str__(self):
+        return f"Door({self.position})"
 
 
 class Door(pygame.sprite.Sprite):
