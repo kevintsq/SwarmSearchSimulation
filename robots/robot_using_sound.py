@@ -1,5 +1,4 @@
-import utils
-from robots.robot import Robot
+from robots.robot import *
 from state import *
 
 
@@ -98,3 +97,41 @@ class RobotUsingSound(Robot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.gathering_state = self.GatheringState(self)
+
+    def get_azimuth_according_to_others(self):
+        vector = pygame.Vector2()
+        for robot in self.group:
+            if robot != self:
+                vector += utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+        vector: pygame.Vector2 = -vector  # OK to use __neg__
+        _, azimuth = vector.as_polar()
+        return int(azimuth)
+
+    def get_farthest_vector(self, group):
+        max_vector = pygame.Vector2()
+        for robot in group:
+            if robot != self:
+                diff = utils.pygame_cartesian_diff_vec(self.rect.center, robot.rect.center)
+                if diff.length() > max_vector.length():
+                    max_vector = diff
+        return max_vector
+
+    def get_nearest_vector(self, group):
+        min_vector = None
+        for sprite in group:
+            if sprite != self:
+                diff = utils.pygame_cartesian_diff_vec(self.rect.center, sprite.rect.center)
+                if min_vector is None or diff.length() < min_vector.length():
+                    min_vector = diff
+        return min_vector
+
+    def get_nearest_door_vector(self) -> pygame.Vector2:
+        door = min(self.background.doors,
+                   key=lambda d: utils.pygame_cartesian_diff_vec(self.rect.center, d.position).length())
+        return utils.pygame_cartesian_diff_vec(self.rect.center, door.position)
+
+    def get_gathering_vector(self) -> pygame.Vector2:
+        if self.in_room:
+            return self.get_nearest_door_vector()
+        else:
+            return utils.pygame_cartesian_diff_vec(self.rect.center, self.gathering_position)

@@ -1,11 +1,8 @@
-import random
-
-import utils
-from robots.robot import Robot
+from robots.robot_using_sound import *
 from state import *
 
 
-class RobotUsingGasAndSound(Robot):
+class RobotUsingGasAndSound(RobotUsingSound):
     """Robot using Bug1-like algorithm with sound."""
 
     class JustStartedState(AbstractState):
@@ -142,3 +139,27 @@ class RobotUsingGasAndSound(Robot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.gathering_state = self.GatheringState(self)
+
+    def is_revisiting_places(self):
+        # return VisitedPlace(self) in self.background.visited_places
+        place = pygame.sprite.spritecollideany(VisitedPlace(self),
+                                               self.background.visited_places, pygame.sprite.collide_circle)
+        if place is not None:
+            place.visit_count += 1  # OK
+            self.just_visited_place = place
+        return place
+
+    def get_azimuth_according_to_others(self):
+        if self.is_revisiting_places() and self.just_visited_place.visit_count >= 3:
+            self.just_visited_place.visit_count = 0
+            self.just_followed_wall = None
+            self.collide_turn_function = None
+            return random.randint(-179, 180)
+        else:
+            vector = pygame.Vector2()
+            for robot in self.group:
+                if robot != self:
+                    vector += utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+            vector: pygame.Vector2 = -vector  # OK to use __neg__
+            _, azimuth = vector.as_polar()
+            return int(azimuth)

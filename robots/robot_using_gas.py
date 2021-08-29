@@ -1,5 +1,4 @@
-import utils
-from robots.robot import Robot
+from robots.robot import *
 from state import *
 
 
@@ -77,3 +76,12 @@ class RobotUsingGas(Robot):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    def is_revisiting_places(self):
+        # return VisitedPlace(self) in self.background.visited_places
+        place = pygame.sprite.spritecollideany(VisitedPlace(self),
+                                               self.background.visited_places, pygame.sprite.collide_circle)
+        if place is not None:
+            place.visit_count += 1  # OK
+            self.just_visited_place = place
+        return place

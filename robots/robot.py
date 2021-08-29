@@ -221,50 +221,6 @@ class Robot(pygame.sprite.Sprite):
         else:
             raise Exception(f"[{self}] has invalid direction: {self.direction}.")
 
-    def get_farthest_vector(self, group):
-        max_vector = pygame.Vector2()
-        for robot in group:
-            if robot != self:
-                diff = utils.pygame_cartesian_diff_vec(self.rect.center, robot.rect.center)
-                if diff.length() > max_vector.length():
-                    max_vector = diff
-        return max_vector
-
-    def get_nearest_vector(self, group):
-        min_vector = None
-        for sprite in group:
-            if sprite != self:
-                diff = utils.pygame_cartesian_diff_vec(self.rect.center, sprite.rect.center)
-                if min_vector is None or diff.length() < min_vector.length():
-                    min_vector = diff
-        return min_vector
-
-    def get_nearest_door_vector(self) -> pygame.Vector2:
-        door = min(self.background.doors,
-                   key=lambda d: utils.pygame_cartesian_diff_vec(self.rect.center, d.position).length())
-        return utils.pygame_cartesian_diff_vec(self.rect.center, door.position)
-
-    def get_azimuth_according_to_others(self):
-        if self.is_revisiting_places() and self.just_visited_place.visit_count >= 3:
-            self.just_visited_place.visit_count = 0
-            self.just_followed_wall = None
-            self.collide_turn_function = None
-            return random.randint(-179, 180)
-        else:
-            vector = pygame.Vector2()
-            for robot in self.group:
-                if robot != self:
-                    vector += utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
-            vector: pygame.Vector2 = -vector  # OK to use __neg__
-            _, azimuth = vector.as_polar()
-            return int(azimuth)
-
-    def get_gathering_vector(self) -> pygame.Vector2:
-        if self.in_room:
-            return self.get_nearest_door_vector()
-        else:
-            return utils.pygame_cartesian_diff_vec(self.rect.center, self.gathering_position)
-
     def is_colliding_wall(self):
         self.collided_wall = pygame.sprite.spritecollideany(self, self.background.walls)
         return self.collided_wall
@@ -291,15 +247,6 @@ class Robot(pygame.sprite.Sprite):
         else:
             raise Exception(f"[{self}] has invalid direction: {self.direction}.")
         return distance <= 0
-
-    def is_revisiting_places(self):
-        # return VisitedPlace(self) in self.background.visited_places
-        place = pygame.sprite.spritecollideany(VisitedPlace(self),
-                                               self.background.visited_places, pygame.sprite.collide_circle)
-        if place is not None:
-            place.visit_count += 1  # OK
-            self.just_visited_place = place
-        return place
 
     def __act_when_colliding_wall(self):
         """Not practical. Do not use."""
