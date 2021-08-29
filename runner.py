@@ -1,8 +1,7 @@
-from abc import ABC, abstractmethod
 import pickle
 
-from robot_manager import *
 from logger import *
+from robot_manager import *
 
 
 class AbstractRunner(ABC):
@@ -22,7 +21,8 @@ class StatisticRunner(AbstractRunner):
     def run(self):
         robot_cnt = 8
         self.logger.info(
-            "site_width,site_height,room_cnt,injury_cnt,robot_type,robot_cnt,room_visited,injury_rescued,total_action_cnt,"
+            "no,site_width,site_height,room_cnt,injury_cnt,"
+            "robot_type,robot_cnt,mode,room_visited,injury_rescued,returned,total_action_cnt,"
             f"{','.join(('robot_{}_visits,robot_{}_rescues,robot_{}_collides'.format(i, i, i) for i in range(robot_cnt)))}")
         for i in range(config.MAX_ITER):
             site_width, site_height, room_cnt, injury_cnt, robot_type = 120, 60, 120, 10, RobotUsingGasAndSound
@@ -32,17 +32,22 @@ class StatisticRunner(AbstractRunner):
                 print(f"Generation {i} failed. Skipped.", file=sys.stderr)
                 continue
             try:
-                layout = Layout.from_generator(generator, enable_display=False)
-                x, y = generator.departure_point
+                layout = Layout.from_generator(generator, enable_display=False, depart_from_edge=False)
                 manager = RandomSpreadingRobotManager(robot_type, self.logger, layout, robot_cnt,
-                                                      (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
-                while True:
-                    if all(layout.rooms) and all(layout.injuries) or manager.action_count == 10000:
-                        # have been visited and rescued
-                        self.logger.info(f"{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
-                                         f"{robot_type.__name__},{robot_cnt},{layout.report_search()},{manager.report_search()}")
-                        break
+                                                      initial_gather_mode=False)
+                while not (layout or manager.action_count >= 3750):
                     manager.update()
+                    if manager.action_count % 5 == 0:
+                        self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
+                                         f"{robot_type.__name__},{robot_cnt},Search,{layout.report_search()},NA,"
+                                         f"{manager.report_search()}")
+                manager.enter_gathering_mode()
+                while not (manager or manager.action_count - manager.first_injury_action_count >= 1000):
+                    manager.update()
+                    if manager.action_count % 5 == 0:
+                        self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
+                                         f"{robot_type.__name__},{robot_cnt},Return,{layout.report_search()},"
+                                         f"{manager.report_gather()},{manager.report_search()}")
             except:
                 with open(f"debug/gen_dbg_{i}.pkl", "wb") as file:
                     pickle.dump(generator, file)
@@ -67,11 +72,11 @@ class GatheringStatisticRunner(AbstractRunner):
                 continue
             try:
                 layout = Layout.from_generator(generator, enable_display=False)
-                x, y = generator.departure_point
                 manager = RandomSpreadingRobotManager(robot_type, self.logger, layout, robot_cnt,
-                                                      (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
+                                                      initial_gather_mode=True)
                 while True:
-                    if manager or manager.first_injury_action_count != 0 and manager.action_count - manager.first_injury_action_count >= 1000:
+                    if manager or manager.first_injury_action_count != 0 and \
+                            manager.action_count - manager.first_injury_action_count >= 1000:
                         # all(robots) have mission-completed
                         self.logger.info(f"{site_width},{site_height},{generator.room_cnt},{robot_type.__name__},"
                                          f"{robot_cnt},{manager.report_gather()}")
@@ -95,8 +100,7 @@ class DebugRunner(AbstractRunner):
         with open("debug/gen_dbg.pkl", "rb") as file:
             generator: SiteGenerator = pickle.load(file)
         layout = Layout.from_generator(generator)
-        x, y = generator.departure_point
-        manager = SpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 8, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
+        manager = SpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 8, initial_gather_mode=False)
         while True:
             for event in pygame.event.get():
                 if event.type == QUIT:
@@ -118,7 +122,7 @@ class TestRunner(AbstractRunner):
 
     def run(self):
         layout = Layout.from_file("assets/test.lay")
-        manager = SpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 1, (100, 100))
+        manager = SpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 1, initial_gather_mode=False)
         while True:
             for event in pygame.event.get():
                 if event.type == QUIT:
@@ -139,11 +143,11 @@ class PresentationRunner(AbstractRunner):
         pygame.display.set_caption("Simulation")
 
     def run(self):
-        generator = SiteGenerator(48, 27, 10, 1)
+        generator = SiteGenerator(120, 60, 120, 1)
         try:
-            layout = Layout.from_generator(generator)
-            x, y = generator.departure_point
-            manager = SpreadingRobotManager(RobotUsingGas, self.logger, layout, 8, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
+            layout = Layout.from_generator(generator, depart_from_edge=True)
+            manager = SpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 8,
+                                            depart_from_edge=True, initial_gather_mode=False)
             clock = pygame.time.Clock()
             frame_rate = config.DISPLAY_FREQUENCY
             while True:
@@ -185,8 +189,7 @@ class DebugPresentationRunner(AbstractRunner):
         with open("debug/gen_dbg.pkl", "rb") as file:
             generator: SiteGenerator = pickle.load(file)
         layout = Layout.from_generator(generator)
-        x, y = generator.departure_point
-        manager = RandomSpreadingRobotManager(RobotUsingGas, self.logger, layout, 8, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
+        manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 8, initial_gather_mode=True)
         clock = pygame.time.Clock()
         frame_rate = config.DISPLAY_FREQUENCY
         while True:
@@ -231,9 +234,7 @@ class StatisticPresentationRunner(AbstractRunner):
                 continue
             try:
                 layout = Layout.from_generator(generator)
-                x, y = generator.departure_point
-                manager = SpreadingRobotManager(robot_type, self.logger, layout, robot_cnt,
-                                                (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT))
+                manager = SpreadingRobotManager(robot_type, self.logger, layout, robot_cnt, initial_gather_mode=False)
                 clock = pygame.time.Clock()
                 frame_rate = config.DISPLAY_FREQUENCY
                 while True:

@@ -14,28 +14,29 @@ class RobotUsingGasAndSound(Robot):
 
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()
-            robot = self.get_robot()
-            azimuth = robot.get_direction_according_to_others()
-            diff = utils.normalize_azimuth(robot.azimuth - azimuth)
+            robot: RobotUsingGasAndSound = self.get_robot()
+            azimuth = robot.get_azimuth_according_to_others()
+            diff = utils.normalize_azimuth(robot.azimuth - (azimuth + 180))
             robot.logger.debug(f"[{robot}] azimuth: {azimuth}, self: {robot.azimuth}, diff: {diff}")
             if robot.azimuth % 90 == 0:
-                robot.turn_right(90 if diff > 0 else -90, True)
+                robot.turn_right(90 if diff > 0 else -90, update_collide_turn_func=True)
             else:
                 robot.turn_right(robot.azimuth % 90 if diff > 0 else robot.azimuth % 90 - 90, True)
             robot.state = robot.following_wall_state
 
         def transfer_when_not_following_wall(self):
-            robot = self.get_robot()
+            robot: RobotUsingGasAndSound = self.get_robot()
             robot.commit_go_front()
-            azimuth = robot.get_direction_according_to_others()
+            azimuth = robot.get_azimuth_according_to_others()
             if azimuth != utils.normalize_azimuth(robot.azimuth + 180) and azimuth != 0:
                 robot.turn_to_azimuth(azimuth)
             else:
                 robot.turn_to_azimuth(robot.original_azimuth)
             robot.just_followed_wall = None
+            robot.collide_turn_function = None
 
         def transfer_to_next_state(self):
-            robot = self.get_robot()
+            robot: RobotUsingGasAndSound = self.get_robot()
             robot.attempt_go_front()
             if robot.is_colliding_wall():
                 self.transfer_when_colliding_wall()
@@ -44,7 +45,7 @@ class RobotUsingGasAndSound(Robot):
             elif not robot.is_moving_along_wall():  # Needs Turning
                 self.transfer_when_not_following_wall()
             elif robot.is_others_found_injuries():
-                self.transfer_when_others_found_injuries()
+                self.transfer_when_need_to_gather()
             else:
                 robot.commit_go_front()
 
@@ -54,11 +55,11 @@ class RobotUsingGasAndSound(Robot):
 
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()
-            robot = self.get_robot()
+            robot: RobotUsingGasAndSound = self.get_robot()
             robot.collide_turn_function(90)
 
         def transfer_when_not_following_wall(self):
-            robot = self.get_robot()
+            robot: RobotUsingGasAndSound = self.get_robot()
             if robot.is_revisiting_places():
                 self.transfer_when_revisiting_places()
             else:
@@ -67,7 +68,7 @@ class RobotUsingGasAndSound(Robot):
 
         def transfer_when_revisiting_places(self):
             super().transfer_when_revisiting_places()
-            robot = self.get_robot()
+            robot: RobotUsingGasAndSound = self.get_robot()
             robot.commit_go_front()
             robot.turn_according_to_wall()
             robot.state = robot.just_started_state
@@ -78,14 +79,16 @@ class RobotUsingGasAndSound(Robot):
 
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()
-            robot = self.get_robot()
+            robot: RobotUsingGasAndSound = self.get_robot()
             if robot.is_revisiting_places() and robot.just_visited_place.visit_count >= 3:
                 robot.turn_to_azimuth(random.randint(-179, 180))
                 robot.just_visited_place.visit_count = 0
                 robot.just_followed_wall = None
+                robot.collide_turn_function = None
             elif robot.collide_turn_function is None:
                 distance, robot.gathering_azimuth = robot.get_gathering_vector().as_polar()
-                diff = utils.normalize_azimuth(robot.azimuth - robot.gathering_azimuth)
+                robot.gathering_azimuth = int(robot.gathering_azimuth)
+                diff = utils.normalize_azimuth(robot.azimuth - (robot.gathering_azimuth + 180))
                 robot.logger.debug(f"[{robot}] azimuth: {robot.gathering_azimuth}, self: {robot.azimuth}, diff: {diff}")
                 if robot.azimuth % 90 == 0:
                     robot.turn_right(90 if diff > 0 else -90, update_collide_turn_func=True)
@@ -106,8 +109,14 @@ class RobotUsingGasAndSound(Robot):
             else:
                 robot.collide_turn_function(90)
 
+        def transfer_when_colliding_another_robot(self):
+            robot: RobotUsingGasAndSound = self.get_robot()
+            robot.cancel_go_front()
+            robot.logger.debug(f"[{robot}] Collides another robot! Turning!")
+            robot.turn_right(90)  # TODO
+
         def transfer_when_not_following_wall(self):
-            robot = self.get_robot()
+            robot: RobotUsingGasAndSound = self.get_robot()
             robot.commit_go_front()
             robot.logger.debug(f"[{robot}] not following wall!")
             _, robot.gathering_azimuth = robot.get_gathering_vector().as_polar()
@@ -116,7 +125,7 @@ class RobotUsingGasAndSound(Robot):
             robot.collide_turn_function = None
 
         def transfer_to_next_state(self):
-            robot = self.get_robot()
+            robot: RobotUsingGasAndSound = self.get_robot()
             robot.attempt_go_front()
             if robot.is_finish_gathering():
                 robot.mission_complete = True

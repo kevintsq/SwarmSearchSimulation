@@ -12,12 +12,12 @@ class RobotUsingGas(Robot):
 
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()
-            robot = self.get_robot()
-            robot.turn_right(robot.azimuth % 90 - 90, True)  # TODO
+            robot: RobotUsingGas = self.get_robot()
+            robot.turn_right(robot.azimuth % 90 - 90, update_collide_turn_func=True)  # TODO
             robot.state = robot.following_wall_state
 
         def transfer_when_not_following_wall(self):
-            robot = self.get_robot()
+            robot: RobotUsingGas = self.get_robot()
             robot.commit_go_front()
             if robot.just_visited_place is not None and robot.just_visited_place.visit_count >= 3:
                 robot.just_visited_place.visit_count = 0
@@ -26,7 +26,7 @@ class RobotUsingGas(Robot):
             robot.just_followed_wall = None
 
         def transfer_to_next_state(self):
-            robot = self.get_robot()
+            robot: RobotUsingGas = self.get_robot()
             robot.attempt_go_front()
             if robot.is_colliding_wall():
                 self.transfer_when_colliding_wall()
@@ -43,11 +43,11 @@ class RobotUsingGas(Robot):
 
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()
-            robot = self.get_robot()
+            robot: RobotUsingGas = self.get_robot()
             robot.collide_turn_function(90)
 
         def transfer_when_not_following_wall(self):
-            robot = self.get_robot()
+            robot: RobotUsingGas = self.get_robot()
             if robot.is_revisiting_places():
                 self.transfer_when_revisiting_places()
             else:
@@ -56,13 +56,13 @@ class RobotUsingGas(Robot):
 
         def transfer_when_revisiting_places(self):
             super().transfer_when_revisiting_places()
-            robot = self.get_robot()
+            robot: RobotUsingGas = self.get_robot()
             robot.commit_go_front()
             robot.turn_according_to_wall()
             robot.state = robot.just_started_state
 
         def transfer_to_next_state(self):
-            robot = self.get_robot()
+            robot: RobotUsingGas = self.get_robot()
             robot.attempt_go_front()
             if robot.is_colliding_wall():
                 self.transfer_when_colliding_wall()

@@ -21,7 +21,7 @@ class AbstractState:
         elif self.__robot.is_found_injuries():
             self.transfer_when_found_injuries()
         elif self.__robot.is_others_found_injuries():
-            self.transfer_when_others_found_injuries()
+            self.transfer_when_need_to_gather()
         else:
             self.__robot.commit_go_front()
 
@@ -53,10 +53,15 @@ class AbstractState:
         self.__robot.mission_complete = True
         self.__robot.state = self.__robot.found_injury_state
 
-    def transfer_when_others_found_injuries(self):
+    def transfer_when_need_to_gather(self):
         self.__robot.commit_go_front()
+        if not self.__robot.initial_gather_mode:
+            self.__robot.gathering_position = self.__robot.background.departure_position
         self.__robot.state = self.__robot.gathering_state
         self.__robot.collide_turn_function = None
+
+    def __str__(self):
+        return self.__class__.__name__
 
     def __hash__(self):
         return hash(self.__class__.__name__)

@@ -12,7 +12,8 @@ from utils import Direction
 class Layout:
     """Simulation layout."""
 
-    def __init__(self, site: np.ndarray, rooms: Optional[list] = None, injuries: Optional[list] = None, enable_display=True):
+    def __init__(self, site: np.ndarray, rooms: Optional[list] = None,
+                 injuries: Optional[list] = None, departure_position=None, enable_display=True):
         """
         Creating a layout from a numpy.ndarray of site,
         and an list of rooms and injuries which are optional.
@@ -24,10 +25,15 @@ class Layout:
         else:
             self.display = None
         self.layout = pygame.Surface(size)
-        if self.display is not None:
+        if self.display is None:
+            self.rect = self.layout.get_rect()
+        else:
             self.rect = self.display.get_rect()
-            self.center = self.rect.center
             self.layout.fill(config.BACKGROUND_COLOR)
+        if departure_position is None:
+            self.departure_position = self.rect.center
+        else:
+            self.departure_position = departure_position
         self.walls = pygame.sprite.Group()
         self.doors = pygame.sprite.Group()
         self.rooms = pygame.sprite.Group()
@@ -86,6 +92,10 @@ class Layout:
             for i, injury in enumerate(injuries):
                 self.injuries.add(InjuryArea(i + 1, *injury, self))
 
+    def __bool__(self):
+        """all(self.rooms) and all(self.injuries) are visited and rescued."""
+        return all(self.rooms) and all(self.injuries)
+
     @staticmethod
     def from_file(filename, enable_display=True):
         """
@@ -102,10 +112,10 @@ class Layout:
         return Layout(site, enable_display=enable_display)
 
     @staticmethod
-    def from_generator(gen: SiteGenerator, enable_display=True):
+    def from_generator(gen: SiteGenerator, enable_display=True, depart_from_edge=False):
         """
         Factory method for creating a layout from a SiteGenerator.
-        The interface provided from SiteGenerator is ugly, so we need some extra effort here.
+        The interface provided from SiteGenerator is ugly, so we need some extra efforts here.
         """
         rooms = []
         injuries = []
@@ -115,7 +125,12 @@ class Layout:
             else:
                 rooms.append((x1 + 1, y1 + 1, x2 + 1, y2 + 1))
         assert len(injuries) == gen.injuries
-        return Layout(gen.site_array, rooms, injuries, enable_display=enable_display)
+        if depart_from_edge:
+            x, y = gen.edge_departure_point
+            return Layout(gen.site_array, rooms, injuries, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT), enable_display)
+        else:
+            x, y = gen.central_departure_point
+            return Layout(gen.site_array, rooms, injuries, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT), enable_display)
 
     def update(self):
         """Redraw method that should be called for each frame."""
@@ -173,7 +188,8 @@ class Wall(pygame.sprite.Sprite):
 class Door(pygame.sprite.Sprite):
     def __init__(self, x, y, background: Layout):
         super().__init__()
-        self.rect = pygame.draw.circle(background.layout, pygame.Color("red"), (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT), Wall.HALF_SPAN_UNIT)
+        self.rect = pygame.draw.circle(background.layout, pygame.Color("red"),
+                                       (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT), Wall.HALF_SPAN_UNIT)
         self.position = self.rect.center
 
     def __hash__(self):
@@ -261,8 +277,8 @@ class InjuryArea(pygame.sprite.Sprite):
         """Set self.rescued to True and draw accordingly."""
         self.rescued = True
         if self.background.display is not None:
-            pygame.draw.rect(self.background.layout, config.RESCUED_COLOR if self.rescued else config.FAILED_RESCUE_COLOR,
-                             self.rect)
+            pygame.draw.rect(self.background.layout,
+                             config.RESCUED_COLOR if self.rescued else config.FAILED_RESCUE_COLOR, self.rect)
             self.background.layout.blit(self.image, self.image.get_rect(center=self.rect.center))
 
     def __hash__(self):

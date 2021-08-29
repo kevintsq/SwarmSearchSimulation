@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 from robots.robot import *
 from robots.robot_using_gas import *
 from robots.robot_using_sound import *
@@ -5,18 +7,21 @@ from robots.robot_using_gas_and_sound import *
 from robots.random_robot import *
 
 
-class AbstractRobotManager:
-    def __init__(self, robot_type, logger, background):
+class AbstractRobotManager(ABC):
+    def __init__(self, robot_type, logger, background, depart_from_edge=False, initial_gather_mode=False):
         self.robots = pygame.sprite.Group()
         self.robot_type = robot_type
         self.logger = logger
         self.background: Layout = background
+        self.amount = 0
+        self.depart_from_edge = depart_from_edge
+        self.initial_gather_mode = initial_gather_mode
         self.action_count = 0
         self.first_injury_action_count = 0
 
+    @abstractmethod
     def add_robot(self, *args, **kwargs):
         """The manager must take care of the robot id."""
-        pass
 
     def update(self):
         """Redraw method that should be called for each frame, but must after redrawing layout."""
@@ -24,6 +29,11 @@ class AbstractRobotManager:
         if self.first_injury_action_count == 0 and any(self.robots):
             self.first_injury_action_count = self.action_count
         self.robots.update()
+
+    def enter_gathering_mode(self):
+        self.first_injury_action_count = self.action_count
+        for robot in self.robots:
+            robot.state.transfer_when_need_to_gather()  # OK
 
     def report_search(self):
         return f"{self.action_count},{','.join((robot.report() for robot in self.robots))}"  # OK
@@ -33,7 +43,7 @@ class AbstractRobotManager:
         for robot in self.robots:
             if robot.mission_complete:  # OK
                 count += 1
-        return f"{self.action_count - self.first_injury_action_count},{count}"
+        return count
 
     def __len__(self):
         return len(self.robots)
@@ -48,62 +58,69 @@ class AbstractRobotManager:
         return str(self.robots)
 
     def __bool__(self):
+        """all(self.robots) are mission_completed."""
         return all(self.robots)
 
 
 class SpreadingRobotManager(AbstractRobotManager):
-    def __init__(self, robot_type, logger, background, amount, position):
-        super().__init__(robot_type, logger, background)
-        self.amount = 0
-        self.add_robot(amount, position)
+    def __init__(self, robot_type, logger, background, amount, depart_from_edge=False, initial_gather_mode=False):
+        super().__init__(robot_type, logger, background, depart_from_edge, initial_gather_mode)
+        self.add_robot(amount, self.background.departure_position)
 
     def add_robot(self, amount, position):
         for i in range(self.amount, self.amount + amount):
-            azimuth = 360 * i // amount
+            azimuth = (180 if self.depart_from_edge else 360) * i // amount
             dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), azimuth)
-            self.robots.add(self.robot_type(i, self.logger, self.robots, self.background, (position[0] + dx, position[1] + dy), azimuth))
+            self.robots.add(self.robot_type(i, self.logger, self.robots, self.background,
+                                            (position[0] + dx, position[1] + dy), azimuth, self.initial_gather_mode))
         self.amount += amount
 
 
 class RandomSpreadingRobotManager(AbstractRobotManager):
-    def __init__(self, robot_type, logger, background, amount, position):
-        super().__init__(robot_type, logger, background)
-        self.amount = 0
-        self.add_robot(amount, position)
+    def __init__(self, robot_type, logger, background, amount, depart_from_edge=False, initial_gather_mode=False):
+        super().__init__(robot_type, logger, background, depart_from_edge, initial_gather_mode)
+        self.add_robot(amount, self.background.departure_position)
 
     def add_robot(self, amount, position):
-        azimuth = random.randint(-179, 180)
-        delta = 360 // amount
+        initial_bias = random.randint(-179, 180)
+        delta = (180 if self.depart_from_edge else 360) // amount
         for i in range(self.amount, self.amount + amount):
-            tmp = azimuth + i * delta
-            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), tmp)
-            self.robots.add(self.robot_type(i, self.logger, self.robots, self.background, (position[0] + dx, position[1] + dy), tmp))
+            azimuth = utils.normalize_azimuth(initial_bias + i * delta)
+            if azimuth < 0:
+                azimuth += 180
+            dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), azimuth)
+            self.robots.add(self.robot_type(i, self.logger, self.robots, self.background,
+                                            (position[0] + dx, position[1] + dy), azimuth, self.initial_gather_mode))
         self.amount += amount
 
 
 class CollidingRobotManager(AbstractRobotManager):
-    def __init__(self, robot_type, logger, background, amount, position):
-        super().__init__(robot_type, logger, background)
-        self.amount = 0
-        self.add_robot(amount, position)
+    """Only for testing purpose."""
+
+    def __init__(self, robot_type, logger, background, amount, depart_from_edge=False, initial_gather_mode=False):
+        super().__init__(robot_type, logger, background, depart_from_edge, initial_gather_mode)
+        self.add_robot(amount, self.background.departure_position)
 
     def add_robot(self, amount, position):
         for i in range(self.amount, self.amount + amount):
-            azimuth = 360 * i // amount
+            azimuth = (180 if self.depart_from_edge else 360) * i // amount
             dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), azimuth)
-            self.robots.add(self.robot_type(i, self.logger, self.robots, self.background, (position[0] + dx, position[1] + dy), azimuth + 180))
+            self.robots.add(self.robot_type(i, self.logger, self.robots, self.background,
+                                            (position[0] + dx, position[1] + dy),
+                                            azimuth + 180, self.initial_gather_mode))
         self.amount += amount
 
 
 class FreeRobotManager(AbstractRobotManager):
-    def __init__(self, robot_type, logger, background, amount, position):
-        super().__init__(robot_type, logger, background)
-        self.amount = 0
-        self.add_robot(amount, position)
+    def __init__(self, robot_type, logger, background, amount, depart_from_edge=False, initial_gather_mode=False):
+        super().__init__(robot_type, logger, background, depart_from_edge, initial_gather_mode)
+        self.add_robot(amount, self.background.departure_position)
 
     def add_robot(self, amount, position):
         for i in range(self.amount, self.amount + amount):
-            azimuth = 360 * i // amount
+            azimuth = (180 if self.depart_from_edge else 360) * i // amount
             dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT), azimuth)
-            self.robots.add(self.robot_type(i, self.logger, self.robots, self.background, (position[0] + dx, position[1] + dy)))
+            self.robots.add(self.robot_type(i, self.logger, self.robots, self.background,
+                                            (position[0] + dx, position[1] + dy),
+                                            initial_gather_mode=self.initial_gather_mode))
         self.amount += amount
