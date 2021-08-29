@@ -36,7 +36,7 @@ class StatisticRunner(AbstractRunner):
                 manager.enter_gathering_mode()
                 while not (manager or manager.action_count - manager.first_injury_action_count >= 1000):
                     manager.update()
-                    if manager.action_count % 10 == 0:
+                    if manager.action_count % 100 == 0:
                         self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
                                          f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__},"
                                          f"{robot_cnt},Return,{layout.report()},{manager.report_gather()},"
