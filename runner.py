@@ -21,7 +21,7 @@ class StatisticRunner(AbstractRunner):
     def run(self):
         robot_cnt = 8
         self.logger.info(
-            "no,site_width,site_height,room_cnt,injury_cnt,"
+            "no,site_width,site_height,room_cnt,injury_cnt,departure_position,"
             "robot_type,robot_cnt,mode,room_visited,injury_rescued,returned,total_action_cnt,"
             f"{','.join(('robot_{}_visits,robot_{}_rescues,robot_{}_collides'.format(i, i, i) for i in range(robot_cnt)))}")
         for i in range(config.MAX_ITER):
@@ -39,14 +39,14 @@ class StatisticRunner(AbstractRunner):
                     manager.update()
                     if manager.action_count % 5 == 0:
                         self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
-                                         f"{robot_type.__name__},{robot_cnt},Search,{layout.report()},NA,"
+                                         f"Center,{robot_type.__name__},{robot_cnt},Search,{layout.report()},NA,"
                                          f"{manager.report_search()}")
                 manager.enter_gathering_mode()
                 while not (manager or manager.action_count - manager.first_injury_action_count >= 1000):
                     manager.update()
                     if manager.action_count % 5 == 0:
                         self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
-                                         f"{robot_type.__name__},{robot_cnt},Return,{layout.report()},"
+                                         f"Center,{robot_type.__name__},{robot_cnt},Return,{layout.report()},"
                                          f"{manager.report_gather()},{manager.report_search()}")
             except:
                 with open(f"debug/gen_dbg_{i}.pkl", "wb") as file:
@@ -226,7 +226,7 @@ class StatisticPresentationRunner(AbstractRunner):
     def run(self):
         robot_cnt = 8
         self.logger.info(
-            "no,site_width,site_height,room_cnt,injury_cnt,"
+            "no,site_width,site_height,room_cnt,injury_cnt,departure_position,"
             "robot_type,robot_cnt,mode,room_visited,injury_rescued,returned,total_action_cnt,"
             f"{','.join(('robot_{}_visits,robot_{}_rescues,robot_{}_collides'.format(i, i, i) for i in range(robot_cnt)))}")
         site_width, site_height, room_cnt, injury_cnt, robot_type = 120, 60, 120, 10, RobotUsingGasAndSound
@@ -257,7 +257,7 @@ class StatisticPresentationRunner(AbstractRunner):
                     manager.update()
                     pygame.display.update()
                     clock.tick(frame_rate)
-            self.logger.info(f"0,{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
+            self.logger.info(f"0,{site_width},{site_height},{generator.room_cnt},{generator.injuries},Center,"
                              f"{robot_type.__name__},{robot_cnt},Search,{layout.report()},NA,{manager.report_search()}")
             manager.enter_gathering_mode()
             while not (manager or manager.action_count - manager.first_injury_action_count >= 500):
@@ -280,8 +280,9 @@ class StatisticPresentationRunner(AbstractRunner):
                     manager.update()
                     pygame.display.update()
                     clock.tick(frame_rate)
-            self.logger.info(f"0,{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
-                             f"{robot_type.__name__},{robot_cnt},Return,{layout.report()},NA,{manager.report_search()}")
+            self.logger.info(f"0,{site_width},{site_height},{generator.room_cnt},{generator.injuries},Center,"
+                             f"{robot_type.__name__},{robot_cnt},Return,{layout.report()},{manager.report_gather()},"
+                             f"{manager.report_search()}")
             while True:
                 for event in pygame.event.get():
                     if event.type == QUIT:
