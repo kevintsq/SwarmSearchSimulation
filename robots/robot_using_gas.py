@@ -55,7 +55,7 @@ class RobotUsingGas(Robot):
                 robot.turn_according_to_wall()
 
         def transfer_when_revisiting_places(self):
-            super().transfer_when_revisiting_places()
+            # super().transfer_when_revisiting_places()
             robot: RobotUsingGas = self.get_robot()
             robot.commit_go_front()
             robot.turn_according_to_wall()

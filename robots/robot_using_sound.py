@@ -14,7 +14,7 @@ class RobotUsingSound(Robot):
             robot: RobotUsingSound = self.get_robot()
             azimuth = robot.get_azimuth_according_to_others()
             diff = utils.normalize_azimuth(robot.azimuth - (azimuth + 180))
-            robot.logger.debug(f"[{robot}] azimuth: {azimuth}, self: {robot.azimuth}, diff: {diff}")
+            # robot.logger.debug(f"[{robot}] azimuth: {azimuth}, self: {robot.azimuth}, diff: {diff}")
             if robot.azimuth % 90 == 0:
                 robot.turn_right(90 if diff > 0 else -90, update_collide_turn_func=True)
             else:
@@ -44,7 +44,7 @@ class RobotUsingSound(Robot):
                 distance, robot.gathering_azimuth = robot.get_gathering_vector().as_polar()
                 robot.gathering_azimuth = int(robot.gathering_azimuth)
                 diff = utils.normalize_azimuth(robot.azimuth - (robot.gathering_azimuth + 180))
-                robot.logger.debug(f"[{robot}] azimuth: {robot.gathering_azimuth}, self: {robot.azimuth}, diff: {diff}")
+                # robot.logger.debug(f"[{robot}] azimuth: {robot.gathering_azimuth}, self: {robot.azimuth}, diff: {diff}")
                 if robot.azimuth % 90 == 0:
                     robot.turn_right(90 if diff > 0 else -90, update_collide_turn_func=True)
                 else:
@@ -67,14 +67,14 @@ class RobotUsingSound(Robot):
         def transfer_when_colliding_another_robot(self):
             robot: RobotUsingSound = self.get_robot()
             robot.cancel_go_front()
-            robot.logger.debug(f"[{robot}] Collides another robot! Turning!")
+            # robot.logger.debug(f"[{robot}] Collides another robot! Turning!")
             robot.turn_right(90)  # TODO
             robot.collide_turn_function = None  # because need to be updated
 
         def transfer_when_not_following_wall(self):
             robot: RobotUsingSound = self.get_robot()
             robot.commit_go_front()
-            robot.logger.debug(f"[{robot}] not following wall!")
+            # robot.logger.debug(f"[{robot}] not following wall!")
             _, robot.gathering_azimuth = robot.get_gathering_vector().as_polar()
             robot.turn_to_azimuth(robot.gathering_azimuth)
             robot.just_followed_wall = None

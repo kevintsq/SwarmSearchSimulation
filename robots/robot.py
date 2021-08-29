@@ -144,7 +144,7 @@ class Robot(pygame.sprite.Sprite):
             self.rect = pygame.Rect(self.position[0] - self.radius, self.position[1] - self.radius,
                                     Robot.WIDTH, Robot.WIDTH)
         self.old_rect = self.rect.copy()
-        self.logger.debug(f"[{self}] Turns to {self.azimuth}, {self.direction}.")
+        # self.logger.debug(f"[{self}] Turns to {self.azimuth}, {self.direction}.")
 
     def turn_right(self, degree, update_collide_turn_func=False):
         if update_collide_turn_func:
