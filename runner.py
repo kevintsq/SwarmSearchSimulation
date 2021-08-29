@@ -66,6 +66,7 @@ class StatisticRunner(AbstractRunner):
             for robot_cnt in (2, 4, 6, 8, 10):
                 for robot_type in (RandomRobot, Robot, RobotUsingSound, RobotUsingGas, RobotUsingGasAndSound):
                     self.run(i, site_width, site_height, generator, False, robot_type, robot_cnt)
+                    self.run(i, site_width, site_height, generator, True, robot_type, robot_cnt)
         self.logger.stop()
 
 
