@@ -6,35 +6,38 @@ import sys
 
 class Logger:
     def __init__(self):
-        debug_queue = Queue(-1)  # no limit on size
-        debug_queue_handler = QueueHandler(debug_queue)
-        debug_handler = logging.StreamHandler(sys.stdout)
-        debug_handler.setLevel(logging.DEBUG)
-        debug_handler.setFormatter(logging.Formatter('%(levelname)s:\t%(message)s'))
-        self.debug_listener = QueueListener(debug_queue, debug_handler, respect_handler_level=True)
+        console_queue = Queue(-1)  # no limit on size
+        console_queue_handler = QueueHandler(console_queue)
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.CRITICAL)
+        console_handler.setFormatter(logging.Formatter('%(levelname)s:\t%(message)s'))
+        self.console_listener = QueueListener(console_queue, console_handler, respect_handler_level=True)
 
-        info_queue = Queue(-1)  # no limit on size
-        info_queue_handler = QueueHandler(info_queue)
-        info_handler = logging.FileHandler("results.csv", "w", "utf-8")
-        info_handler.setLevel(logging.INFO)
-        info_handler.setFormatter(logging.Formatter('%(message)s'))
-        self.info_listener = QueueListener(info_queue, info_handler, respect_handler_level=True)
+        file_queue = Queue(-1)  # no limit on size
+        file_queue_handler = QueueHandler(file_queue)
+        file_handler = logging.FileHandler("results.csv", "w", "utf-8")
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(logging.Formatter('%(message)s'))
+        self.file_listener = QueueListener(file_queue, file_handler, respect_handler_level=True)
 
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
-        self.logger.addHandler(debug_queue_handler)
-        self.logger.addHandler(info_queue_handler)
+        self.logger.addHandler(console_queue_handler)
+        self.logger.addHandler(file_queue_handler)
 
     def start(self):
-        self.debug_listener.start()
-        self.info_listener.start()
+        self.console_listener.start()
+        self.file_listener.start()
 
     def stop(self):
-        self.debug_listener.stop()
-        self.info_listener.stop()
+        self.console_listener.stop()
+        self.file_listener.stop()
 
     def info(self, msg):
         self.logger.info(msg)
 
     def debug(self, msg):
         self.logger.debug(msg)
+
+    def critical(self, msg):
+        self.logger.critical(msg)

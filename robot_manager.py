@@ -88,7 +88,7 @@ class RandomSpreadingRobotManager(AbstractRobotManager):
         for i in range(self.amount, self.amount + amount):
             azimuth = utils.normalize_azimuth(initial_bias + i * delta)
             if azimuth < 0:
-                azimuth += 180
+                azimuth += 360
             dx, dy = utils.polar_to_pygame_cartesian(int(Wall.SPAN_UNIT * 2), azimuth)
             self.robots.add(self.robot_type(i, self.logger, self.robots, self.background,
                                             (position[0] + dx, position[1] + dy), azimuth, self.initial_gather_mode))

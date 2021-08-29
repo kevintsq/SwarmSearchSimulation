@@ -27,16 +27,23 @@ class StatisticRunner(AbstractRunner):
                 manager.update()
                 if manager.action_count % 10 == 0:
                     self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
-                                     f"Center,{robot_type.__name__},{robot_cnt},Search,{layout.report()},NA,"
-                                     f"{manager.report_search()}")
+                                     f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__},{robot_cnt},"
+                                     f"Search,{layout.report()},NA,{manager.report_search()}")
+            self.logger.critical(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
+                                 f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__},{robot_cnt},Search,"
+                                 f"{layout.report()},NA,{manager.report_search()}")
             if robot_type != Robot and robot_type != RobotUsingGas:
                 manager.enter_gathering_mode()
                 while not (manager or manager.action_count - manager.first_injury_action_count >= 1000):
                     manager.update()
                     if manager.action_count % 10 == 0:
                         self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
-                                         f"Center,{robot_type.__name__},{robot_cnt},Return,{layout.report()},"
-                                         f"{manager.report_gather()},{manager.report_search()}")
+                                         f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__},"
+                                         f"{robot_cnt},Return,{layout.report()},{manager.report_gather()},"
+                                         f"{manager.report_search()}")
+            self.logger.critical(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
+                                 f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__}, {robot_cnt},Return,"
+                                 f"{layout.report()},{manager.report_gather()},{manager.report_search()}")
         except:
             with open(f"debug/gen_dbg_{i}.pkl", "wb") as file:
                 pickle.dump(generator, file)
@@ -44,7 +51,7 @@ class StatisticRunner(AbstractRunner):
             traceback.print_exc()
 
     def dispatch(self):
-        robot_max_cnt = 8
+        robot_max_cnt = 10
         self.logger.info(
             "no,site_width,site_height,room_cnt,injury_cnt,departure_position,"
             "robot_type,robot_cnt,mode,room_visited,injury_rescued,returned,total_action_cnt,"
@@ -230,17 +237,17 @@ class StatisticPresentationRunner(AbstractRunner):
         pygame.display.set_caption("Simulation")
 
     def run(self):
-        robot_cnt = 8
+        robot_cnt = 2
         self.logger.info(
             "no,site_width,site_height,room_cnt,injury_cnt,departure_position,"
             "robot_type,robot_cnt,mode,room_visited,injury_rescued,returned,total_action_cnt,"
             f"{','.join(('robot_{}_visits,robot_{}_rescues,robot_{}_collides'.format(i, i, i) for i in range(robot_cnt)))}")
-        site_width, site_height, room_cnt, injury_cnt, robot_type = 60, 30, 30, 10, RobotUsingGasAndSound
+        site_width, site_height, room_cnt, injury_cnt, robot_type = 120, 60, 120, 10, RobotUsingGasAndSound
         generator = SiteGenerator(site_width, site_height, room_cnt, injury_cnt)
         try:
             layout = Layout.from_generator(generator, depart_from_edge=False)
-            manager = SpreadingRobotManager(robot_type, self.logger, layout, robot_cnt,
-                                            depart_from_edge=False, initial_gather_mode=False)
+            manager = RandomSpreadingRobotManager(robot_type, self.logger, layout, robot_cnt,
+                                                  depart_from_edge=False, initial_gather_mode=False)
             clock = pygame.time.Clock()
             frame_rate = config.DISPLAY_FREQUENCY
             while not (layout or manager.action_count >= 500):
@@ -305,5 +312,5 @@ class StatisticPresentationRunner(AbstractRunner):
 
 
 if __name__ == '__main__':
-    runner = StatisticRunner()
-    runner.dispatch()
+    runner = StatisticPresentationRunner()
+    runner.run()
