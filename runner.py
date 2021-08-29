@@ -1,4 +1,6 @@
 import pickle
+import sys
+from multiprocessing import Pool
 
 from logger import *
 from robot_manager import *
@@ -6,68 +8,85 @@ from robot_manager import *
 
 class AbstractRunner(ABC):
     def __init__(self):
-        self.logger = Logger()
-        self.logger.start()
+        self.logger = Logger(True)
+        # self.logger.start()
 
     @abstractmethod
     def run(self, *args, **kwargs):
         pass
 
 
+def run(i, site_width, site_height, generator, depart_from_edge, robot_type, robot_cnt):
+    logger = Logger()
+    try:
+        layout = Layout.from_generator(generator, enable_display=False, depart_from_edge=depart_from_edge)
+        manager = RandomSpreadingRobotManager(robot_type, logger, layout, robot_cnt,
+                                              depart_from_edge=depart_from_edge, initial_gather_mode=False)
+        while not (layout or manager.action_count >= 4000):
+            manager.update()
+            if manager.action_count % 100 == 0:
+                logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
+                           'Edge' if depart_from_edge else 'Center', robot_type.__name__, robot_cnt,
+                           'Search', layout.report(), 'NA', manager.report_search())
+                # self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
+                #                  f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__},{robot_cnt},"
+                #                  f"Search,{layout.report()},NA,{manager.report_search()}")
+        # self.logger.critical(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
+        #                      f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__},{robot_cnt},Search,"
+        #                      f"{layout.report()},NA,{manager.report_search()}")
+        if robot_type != Robot and robot_type != RobotUsingGas:
+            manager.enter_gathering_mode()
+            while not (manager or manager.action_count - manager.first_injury_action_count >= 1000):
+                manager.update()
+                if manager.action_count % 100 == 0:
+                    logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
+                               'Edge' if depart_from_edge else 'Center', robot_type.__name__,
+                               robot_cnt, 'Return', layout.report(), manager.report_gather(),
+                               manager.report_search())
+                    # self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
+                    #                  f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__},"
+                    #                  f"{robot_cnt},Return,{layout.report()},{manager.report_gather()},"
+                    #                  f"{manager.report_search()}")
+        # self.logger.critical(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
+        #                      f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__}, {robot_cnt},Return,"
+        #                      f"{layout.report()},{manager.report_gather()},{manager.report_search()}")
+    except:
+        with open(f"debug/gen_dbg_{i}.pkl", "wb") as file:
+            pickle.dump(generator, file)
+        import traceback
+        traceback.print_exc()
+
+
 class StatisticRunner(AbstractRunner):
     def __init__(self):
         super().__init__()
 
-    def run(self, i, site_width, site_height, generator, depart_from_edge, robot_type, robot_cnt):
-        try:
-            layout = Layout.from_generator(generator, enable_display=False, depart_from_edge=depart_from_edge)
-            manager = RandomSpreadingRobotManager(robot_type, self.logger, layout, robot_cnt,
-                                                  depart_from_edge=depart_from_edge, initial_gather_mode=False)
-            while not (layout or manager.action_count >= 4000):
-                manager.update()
-                if manager.action_count % 10 == 0:
-                    self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
-                                     f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__},{robot_cnt},"
-                                     f"Search,{layout.report()},NA,{manager.report_search()}")
-            self.logger.critical(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
-                                 f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__},{robot_cnt},Search,"
-                                 f"{layout.report()},NA,{manager.report_search()}")
-            if robot_type != Robot and robot_type != RobotUsingGas:
-                manager.enter_gathering_mode()
-                while not (manager or manager.action_count - manager.first_injury_action_count >= 1000):
-                    manager.update()
-                    if manager.action_count % 100 == 0:
-                        self.logger.info(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
-                                         f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__},"
-                                         f"{robot_cnt},Return,{layout.report()},{manager.report_gather()},"
-                                         f"{manager.report_search()}")
-            self.logger.critical(f"{i},{site_width},{site_height},{generator.room_cnt},{generator.injuries},"
-                                 f"{'Edge' if depart_from_edge else 'Center'},{robot_type.__name__}, {robot_cnt},Return,"
-                                 f"{layout.report()},{manager.report_gather()},{manager.report_search()}")
-        except:
-            with open(f"debug/gen_dbg_{i}.pkl", "wb") as file:
-                pickle.dump(generator, file)
-            import traceback
-            traceback.print_exc()
-
-    def dispatch(self):
+    def run(self):
         robot_max_cnt = 10
-        self.logger.info(
-            "no,site_width,site_height,room_cnt,injury_cnt,departure_position,"
-            "robot_type,robot_cnt,mode,room_visited,injury_rescued,returned,total_action_cnt,"
-            f"{','.join(('robot_{}_visits,robot_{}_rescues,robot_{}_collides'.format(i, i, i) for i in range(robot_max_cnt)))}")
+        # self.logger.info(
+        #     "no,site_width,site_height,room_cnt,injury_cnt,departure_position,"
+        #     "robot_type,robot_cnt,mode,room_visited,injury_rescued,returned,total_action_cnt,"
+        #     f"{','.join(('robot_{}_visits,robot_{}_rescues,robot_{}_collides'.format(i, i, i) for i in range(robot_max_cnt)))}")
         site_width, site_height, room_cnt, injury_cnt = 120, 60, 120, 10
-        for i in range(config.MAX_ITER):
-            try:
-                generator = SiteGenerator(site_width, site_height, room_cnt, injury_cnt)
-            except:
-                print(f"Generation {i} failed. Skipped.", file=sys.stderr)
-                continue
-            for robot_cnt in (2, 4, 6, 8, 10):
-                for robot_type in (RandomRobot, Robot, RobotUsingSound, RobotUsingGas, RobotUsingGasAndSound):
-                    self.run(i, site_width, site_height, generator, False, robot_type, robot_cnt)
-                    self.run(i, site_width, site_height, generator, True, robot_type, robot_cnt)
-        self.logger.stop()
+        workers = []
+        with Pool() as p:
+            for i in range(config.MAX_ITER):
+                try:
+                    generator = SiteGenerator(site_width, site_height, room_cnt, injury_cnt)
+                except:
+                    print(f"Generation {i} failed. Skipped.", file=sys.stderr)
+                    continue
+                for robot_cnt in (2, 4, 6, 8, 10):
+                    for robot_type in (RandomRobot, Robot, RobotUsingSound, RobotUsingGas, RobotUsingGasAndSound):
+                        workers.append(p.apply_async(run, (
+                            i, site_width, site_height, generator, False, robot_type, robot_cnt)))
+                        workers.append(p.apply_async(run, (
+                            i, site_width, site_height, generator, True, robot_type, robot_cnt)))
+            cnt = len(workers)
+            for i, worker in enumerate(workers):
+                worker.wait()
+                print(f"{i} of {cnt} ({i * 100 / cnt: .2f}) finished with status {worker.get()}.")
+        # self.logger.stop()
 
 
 class GatheringStatisticRunner(AbstractRunner):
@@ -313,5 +332,5 @@ class StatisticPresentationRunner(AbstractRunner):
 
 
 if __name__ == '__main__':
-    runner = StatisticPresentationRunner()
+    runner = StatisticRunner()
     runner.run()
