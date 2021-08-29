@@ -1,8 +1,9 @@
+from robots.robot_using_gas import *
 from robots.robot_using_sound import *
 from state import *
 
 
-class RobotUsingGasAndSound(RobotUsingSound):
+class RobotUsingGasAndSound(RobotUsingGas, RobotUsingSound):
     """Robot using Bug1-like algorithm with sound."""
 
     class JustStartedState(AbstractState):
@@ -138,16 +139,6 @@ class RobotUsingGasAndSound(RobotUsingSound):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.gathering_state = self.GatheringState(self)
-
-    def is_revisiting_places(self):
-        # return VisitedPlace(self) in self.background.visited_places
-        place = pygame.sprite.spritecollideany(VisitedPlace(self),
-                                               self.background.visited_places, pygame.sprite.collide_circle)
-        if place is not None:
-            place.visit_count += 1  # OK
-            self.just_visited_place = place
-        return place
 
     def get_azimuth_according_to_others(self):
         if self.is_revisiting_places() and self.just_visited_place.visit_count >= 3:
