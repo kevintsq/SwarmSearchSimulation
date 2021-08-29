@@ -116,7 +116,7 @@ class SiteGenerator:
 
         self.central_departure_point = [(middle_cor_x_min + middle_cor_x_max) / 2,
                                         (middle_cor_y_min + middle_cor_y_max) / 2]
-        self.edge_departure_point = [(middle_cor_x_min + middle_cor_x_max) / 2, 1.5]
+        self.edge_departure_point = [(2 * self.height - 9) / 2, (middle_cor_y_min + middle_cor_y_max) / 2]
 
         v_cor_num = random.randint(int(self.height / 20), int(self.height / 10)) - 1
         num = 0
