@@ -28,6 +28,7 @@ class Logger:
             self.cursor = self.db.cursor()
             self.cursor.execute(
                 f"CREATE TABLE results ({','.join((' '.join(item) for item in attributes.items()))});")
+            self.db.commit()
         else:
             self.db = sqlite3.connect("results.db")
             self.cursor = self.db.cursor()
