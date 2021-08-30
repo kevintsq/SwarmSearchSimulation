@@ -18,7 +18,7 @@ class AbstractRunner(ABC):
 
 def run(i, site_width, site_height, generator, depart_from_edge, robot_type, robot_cnt):
     try:
-        with Logger as logger:
+        with Logger() as logger:
             layout = Layout.from_generator(generator, enable_display=False, depart_from_edge=depart_from_edge)
             manager = RandomSpreadingRobotManager(robot_type, logger, layout, robot_cnt,
                                                   depart_from_edge=depart_from_edge, initial_gather_mode=False)
@@ -67,7 +67,7 @@ class StatisticRunner(AbstractRunner):
         #     "no,site_width,site_height,room_cnt,injury_cnt,departure_position,"
         #     "robot_type,robot_cnt,mode,room_visited,injury_rescued,returned,total_action_cnt,"
         #     f"{','.join(('robot_{}_visits,robot_{}_rescues,robot_{}_collides'.format(i, i, i) for i in range(robot_max_cnt)))}")
-        site_width, site_height, room_cnt, injury_cnt = 120, 60, 120, 10
+        site_width, site_height, room_cnt, injury_cnt = 80, 40, 60, 10
         workers = []
         with Pool() as p:
             for i in range(config.MAX_ITER):
