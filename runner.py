@@ -85,7 +85,7 @@ class StatisticRunner(AbstractRunner):
             cnt = len(workers)
             for i, worker in enumerate(workers):
                 worker.wait()
-                print(f"{i} of {cnt} ({i * 100 / cnt: .2f}%) finished with status {worker.get()}.")
+                print(f"{i + 1} of {cnt} ({(i + 1) * 100 / cnt: .2f}%) finished with status {worker.get()}.")
         # self.logger.stop()
 
 
