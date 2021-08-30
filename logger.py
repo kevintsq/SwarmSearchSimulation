@@ -22,16 +22,15 @@ class Logger:
             attributes[f"robot_{i}_rescues"] = "INT"
             attributes[f"robot_{i}_collides"] = "INT"
         self.attributes = tuple(attributes.keys())
-        if reset and os.path.exists("results.db"):
+        is_exist = os.path.exists("results.db")
+        if reset and is_exist:
             os.remove("results.db")
-            self.db = sqlite3.connect("results.db")
-            self.cursor = self.db.cursor()
+        self.db = sqlite3.connect("results.db")
+        self.cursor = self.db.cursor()
+        if reset or not is_exist:
             self.cursor.execute(
-                f"CREATE TABLE results ({','.join((' '.join(item) for item in attributes.items()))});")
+                    f"CREATE TABLE results ({','.join((' '.join(item) for item in attributes.items()))});")
             self.db.commit()
-        else:
-            self.db = sqlite3.connect("results.db")
-            self.cursor = self.db.cursor()
 
     def __enter__(self):
         return self
