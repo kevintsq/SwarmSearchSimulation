@@ -128,10 +128,10 @@ class Layout:
         assert len(injuries) == gen.injuries
         if depart_from_edge:
             x, y = gen.edge_departure_point
-            return Layout(gen.site_array, rooms, injuries, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT), enable_display)
+            return Layout(gen.site_array, rooms, injuries, (int(y * Wall.SPAN_UNIT), int(x * Wall.SPAN_UNIT)), enable_display)
         else:
             x, y = gen.central_departure_point
-            return Layout(gen.site_array, rooms, injuries, (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT), enable_display)
+            return Layout(gen.site_array, rooms, injuries, (int(y * Wall.SPAN_UNIT), int(x * Wall.SPAN_UNIT)), enable_display)
 
     def update(self):
         """Redraw method that should be called for each frame."""
