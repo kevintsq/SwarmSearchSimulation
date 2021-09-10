@@ -24,7 +24,7 @@ class Robot(pygame.sprite.Sprite):
             robot.state = robot.following_wall_state
 
         def transfer_to_next_state(self):
-            robot = self.get_robot()
+            robot: Robot = self.get_robot()
             robot.attempt_go_front()
             if robot.is_colliding_wall():
                 self.transfer_when_colliding_wall()
@@ -39,11 +39,11 @@ class Robot(pygame.sprite.Sprite):
 
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()
-            robot = self.get_robot()
+            robot: Robot = self.get_robot()
             robot.collide_turn_function(90)
 
         def transfer_when_not_following_wall(self):
-            robot = self.get_robot()
+            robot: Robot = self.get_robot()
             robot.commit_go_front()
             robot.turn_to_azimuth(robot.original_azimuth)
             robot.just_followed_wall = None
@@ -69,7 +69,7 @@ class Robot(pygame.sprite.Sprite):
             super().__init__(robot)
 
         def transfer_to_next_state(self):
-            robot = self.get_robot()
+            robot: Robot = self.get_robot()
             robot.attempt_go_front()
             if robot.is_colliding_wall() or robot.is_colliding_another_robot() or robot.is_leaving_gathering_circle():
                 robot.cancel_go_front()
