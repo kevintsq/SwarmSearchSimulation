@@ -155,7 +155,7 @@ class Layout:
 
     def report(self):
         rescued_cnt = self.count_rescued_injuries()
-        return f"{self.count_visited_rooms_exclude_injuries() + rescued_cnt},{rescued_cnt}"
+        return self.count_visited_rooms_exclude_injuries() + rescued_cnt, rescued_cnt
 
 
 class Wall(pygame.sprite.Sprite):

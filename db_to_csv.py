@@ -1,9 +1,10 @@
 import sqlite3
 
-connection = sqlite3.connect('results.db')
+filename = 'results_small_ljy'
+connection = sqlite3.connect(f'{filename}.db')
 cursor = connection.cursor()
-result = cursor.execute("SELECT * FROM results")
-with open("results.csv", "w", encoding="utf-8") as f:
+result = cursor.execute("SELECT * FROM results WHERE robot_cnt < 11 AND mode = 'Search' AND ('1000' = total_action_cnt OR room_cnt = CAST(room_visited AS INT))")
+with open(f"{filename}_filtered.csv", "w", encoding="utf-8") as f:
     robot_max_cnt = 10
     f.write("no,site_width,site_height,room_cnt,injury_cnt,departure_position,robot_type,robot_cnt,mode,room_visited,"
             "injury_rescued,returned,total_action_cnt,"

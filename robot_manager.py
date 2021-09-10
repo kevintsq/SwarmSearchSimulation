@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 
+from robots.random_robot import *
 from robots.robot import *
 from robots.robot_using_gas import *
 from robots.robot_using_sound import *
 from robots.robot_using_gas_and_sound import *
-from robots.random_robot import *
 
 
 class AbstractRobotManager(ABC):
@@ -37,7 +37,10 @@ class AbstractRobotManager(ABC):
             robot.state.transfer_when_need_to_gather()  # OK
 
     def report_search(self):
-        return f"{self.action_count},{','.join((robot.report() for robot in self.robots))}"  # OK
+        report = [self.action_count]
+        for robot in self.robots:
+            report += robot.report()  # OK
+        return report
 
     def report_gather(self):
         count = 0

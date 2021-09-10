@@ -344,4 +344,4 @@ class Robot(pygame.sprite.Sprite):
             self.background.display.blit(self.image, self.rect)
 
     def report(self):
-        return f"{self.visit_room_count + self.rescue_count},{self.rescue_count},{self.colliding_others_count}"
+        return self.visit_room_count + self.rescue_count, self.rescue_count, self.colliding_others_count

@@ -22,10 +22,12 @@ class Logger:
             attributes[f"robot_{i}_rescues"] = "INT"
             attributes[f"robot_{i}_collides"] = "INT"
         self.attributes = tuple(attributes.keys())
-        is_exist = os.path.exists("results.db")
+        if not os.path.exists("results"):
+            os.mkdir("results")
+        is_exist = os.path.exists("results/results.db")
         if reset and is_exist:
-            os.remove("results.db")
-        self.db = sqlite3.connect("results.db")
+            os.remove("results/results.db")
+        self.db = sqlite3.connect("results/results.db")
         self.cursor = self.db.cursor()
         if reset or not is_exist:
             self.cursor.execute(
@@ -39,7 +41,7 @@ class Logger:
         self.close()
 
     def log(self, *items):
-        self.cursor.execute(f"INSERT INTO results {self.attributes[:len(items)]} VALUES {repr(items)}")
+        self.cursor.execute(f"INSERT INTO results {self.attributes[:len(items)]} VALUES {repr(items)};")
         self.db.commit()
 
     def close(self):
