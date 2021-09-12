@@ -189,7 +189,8 @@ class Wall(pygame.sprite.Sprite):
 class DeparturePlace(pygame.sprite.Sprite):
     def __init__(self, x, y, background: Layout):
         super().__init__()
-        self.rect = pygame.draw.circle(background.layout, pygame.Color("green"), (x, y), Wall.HALF_SPAN_UNIT)
+        self.rect = pygame.draw.circle(background.layout, config.BACKGROUND_COLOR,  # pygame.Color("green"),
+                                       (x, y), Wall.HALF_SPAN_UNIT)
         self.radius = Wall.HALF_SPAN_UNIT
         self.position = self.rect.center
 
@@ -209,7 +210,7 @@ class DeparturePlace(pygame.sprite.Sprite):
 class Door(pygame.sprite.Sprite):
     def __init__(self, x, y, background: Layout):
         super().__init__()
-        self.rect = pygame.draw.circle(background.layout, pygame.Color("red"),
+        self.rect = pygame.draw.circle(background.layout, config.BACKGROUND_COLOR,  # pygame.Color("red"),
                                        (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT), Wall.HALF_SPAN_UNIT)
         self.position = self.rect.center
 

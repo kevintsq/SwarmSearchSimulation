@@ -20,7 +20,8 @@ class AbstractRunner(ABC):
         pass
 
 
-def run(i, site_width, site_height, generator, depart_from_edge, robot_type, robot_cnt, max_search_action_cnt):
+def run(i, site_width, site_height, generator, depart_from_edge, robot_type, robot_cnt,
+        max_search_action_cnt, max_return_action_cnt):
     try:
         with lock:
             logger = Logger()
@@ -38,19 +39,19 @@ def run(i, site_width, site_height, generator, depart_from_edge, robot_type, rob
             logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
                        'Edge' if depart_from_edge else 'Center', robot_type.__name__, robot_cnt,
                        'SearchFinished', *layout.report(), 0, *manager.report_search())
-        # if robot_type != Robot and robot_type != RobotUsingGas:
-        #     manager.enter_gathering_mode()
-        #     while not (manager or manager.action_count - manager.first_injury_action_count >= max_return_action_cnt):
-        #         manager.update()
-        #         if manager.action_count % 100 == 0:
-        #             with lock:
-        #                 logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
-        #                            'Edge' if depart_from_edge else 'Center', robot_type.__name__, robot_cnt,
-        #                            'Return', *layout.report(), manager.report_gather(), *manager.report_search())
-        #     with lock:
-        #         logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
-        #                    'Edge' if depart_from_edge else 'Center', robot_type.__name__, robot_cnt,
-        #                    'ReturnFinished', *layout.report(), manager.report_gather(), *manager.report_search())
+        if robot_type != Robot and robot_type != RobotUsingGas:
+            manager.enter_gathering_mode()
+            while not (manager or manager.action_count - manager.first_injury_action_count >= max_return_action_cnt):
+                manager.update()
+                if manager.action_count % 100 == 0:
+                    with lock:
+                        logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
+                                   'Edge' if depart_from_edge else 'Center', robot_type.__name__, robot_cnt,
+                                   'Return', *layout.report(), manager.report_gather(), *manager.report_search())
+            with lock:
+                logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
+                           'Edge' if depart_from_edge else 'Center', robot_type.__name__, robot_cnt,
+                           'ReturnFinished', *layout.report(), manager.report_gather(), *manager.report_search())
     except:
         with lock:
             if not os.path.exists("debug"):
@@ -68,7 +69,8 @@ class StatisticRunner(AbstractRunner):
         super().__init__()
 
     def run(self):
-        site_width, site_height, room_cnt, injury_cnt, max_search_action_cnt = 120, 60, 120, 10, 4000
+        site_width, site_height, room_cnt, injury_cnt, max_search_action_cnt, max_return_action_cnt =\
+            80, 40, 60, 10, 1000, 250
         workers = []
         with Pool() as p:
             for i in range(config.MAX_ITER):
@@ -79,10 +81,10 @@ class StatisticRunner(AbstractRunner):
                     continue
                 for robot_cnt in (2, 4, 6, 8, 10):
                     for robot_type in (RandomRobot, Robot, RobotUsingSound, RobotUsingGas, RobotUsingGasAndSound):
-                        workers.append(p.apply_async(run, (
-                            i, site_width, site_height, generator, False, robot_type, robot_cnt, max_search_action_cnt)))
-                        workers.append(p.apply_async(run, (
-                            i, site_width, site_height, generator, True, robot_type, robot_cnt, max_search_action_cnt)))
+                        workers.append(p.apply_async(run, (i, site_width, site_height, generator, False, robot_type,
+                                                           robot_cnt, max_search_action_cnt, max_return_action_cnt)))
+                        workers.append(p.apply_async(run, (i, site_width, site_height, generator, True, robot_type,
+                                                           robot_cnt, max_search_action_cnt, max_return_action_cnt)))
             cnt = len(workers)
             for i, worker in enumerate(workers):
                 worker.wait()
@@ -181,10 +183,10 @@ class PresentationRunner(AbstractRunner):
         pygame.display.set_caption("Simulation")
 
     def run(self):
-        generator = SiteGenerator(60, 30, 30, 1)
+        generator = SiteGenerator(120, 60, 120, 10)
         try:
             layout = Layout.from_generator(generator, depart_from_edge=False)
-            manager = RandomSpreadingRobotManager(RobotUsingGas, self.logger, layout, 10,
+            manager = RandomSpreadingRobotManager(RobotUsingGas, self.logger, layout, 6,
                                                   depart_from_edge=False, initial_gather_mode=False)
             clock = pygame.time.Clock()
             frame_rate = config.DISPLAY_FREQUENCY
@@ -205,9 +207,9 @@ class PresentationRunner(AbstractRunner):
                             frame_rate += 5
                         if event.key == K_DOWN and frame_rate > 5:
                             frame_rate -= 5
-                if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
-                    config.PAUSE = True
                 if not config.PAUSE:
+                    if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
+                        config.PAUSE = True
                     layout.update()
                     manager.update()
                     pygame.display.update()

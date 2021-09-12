@@ -26,7 +26,7 @@ class AbstractRobotManager(ABC):
     def update(self):
         """Redraw method that should be called for each frame, but must after redrawing layout."""
         self.action_count += 1
-        if self.first_injury_action_count == 0 and any(self.robots):
+        if self.initial_gather_mode and self.first_injury_action_count == 0 and any(self.robots):
             self.first_injury_action_count = self.action_count
         self.robots.update()
         pygame.display.set_caption(f"Action {self.action_count}")
@@ -37,7 +37,7 @@ class AbstractRobotManager(ABC):
             robot.state.transfer_when_need_to_gather()  # OK
 
     def report_search(self):
-        report = [self.action_count]
+        report = [self.action_count - self.first_injury_action_count]
         for robot in self.robots:
             report += robot.report()  # OK
         return report
