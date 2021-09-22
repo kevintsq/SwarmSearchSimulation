@@ -70,7 +70,7 @@ class StatisticRunner(AbstractRunner):
 
     def run(self):
         site_width, site_height, room_cnt, injury_cnt, max_search_action_cnt, max_return_action_cnt =\
-            80, 40, 60, 10, 1000, 250
+            120, 60, 120, 10, 4000, 1000
         workers = []
         with Pool() as p:
             for i in range(config.MAX_ITER):
@@ -186,7 +186,7 @@ class PresentationRunner(AbstractRunner):
         generator = SiteGenerator(120, 60, 120, 10)
         try:
             layout = Layout.from_generator(generator, depart_from_edge=False)
-            manager = RandomSpreadingRobotManager(RobotUsingGas, self.logger, layout, 6,
+            manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 8,
                                                   depart_from_edge=False, initial_gather_mode=False)
             clock = pygame.time.Clock()
             frame_rate = config.DISPLAY_FREQUENCY
@@ -213,7 +213,7 @@ class PresentationRunner(AbstractRunner):
                     layout.update()
                     manager.update()
                     pygame.display.update()
-                    clock.tick(frame_rate)
+                    # clock.tick(frame_rate)
         except:
             if not os.path.exists("debug"):
                 os.mkdir("debug")
@@ -340,5 +340,5 @@ class StatisticPresentationRunner(AbstractRunner):
 
 
 if __name__ == '__main__':
-    runner = StatisticRunner()
+    runner = PresentationRunner()
     runner.run()

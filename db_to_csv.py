@@ -1,6 +1,6 @@
 import sqlite3
 
-filename = 'results_medium'
+filename = 'results_small'
 connection = sqlite3.connect(f'results/{filename}.db')
 cursor = connection.cursor()
 result = cursor.execute("SELECT * FROM results")
