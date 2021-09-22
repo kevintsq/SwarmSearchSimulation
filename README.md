@@ -12,13 +12,11 @@
 
 3. Make sure the environment meets the requirements.
 
-   For Windows users: Execute the following command to install requirements.
+   Execute the following command to install requirements.
 
    ```shell
    pip install -r requirements.txt
    ```
-
-   For other users: Remove `pywin32` in `requirements.txt` and execute the command above to install requirements.
 
 3. Run `runner.py`.
 
