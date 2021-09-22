@@ -162,6 +162,8 @@ class Wall(pygame.sprite.Sprite):
     SPAN_UNIT = 32 * config.SCALING_FACTOR
     HALF_SPAN_UNIT = 16 * config.SCALING_FACTOR
     WIDTH = int(3 * config.SCALING_FACTOR)
+    if WIDTH == 0:
+        WIDTH = 1
 
     def __init__(self, x1, y1, x2, y2, direction, background: Layout):
         super().__init__()
