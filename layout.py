@@ -107,10 +107,13 @@ class Layout:
         with open(filename) as file:
             lines = file.read().strip().splitlines()
         site = np.zeros((len(lines), len(lines[0])))
+        departure_position = None
         for i, line in enumerate(lines):
             for j, char in enumerate(line):
                 site[i, j] = ord(char)
-        return Layout(site, enable_display=enable_display)
+                if char == 'D':
+                    departure_position = (j * Wall.SPAN_UNIT, i * Wall.SPAN_UNIT)
+        return Layout(site, enable_display=enable_display, departure_position=departure_position)
 
     @staticmethod
     def from_generator(gen: SiteGenerator, enable_display=True, depart_from_edge=False):
@@ -235,8 +238,11 @@ class VisitedPlace(pygame.sprite.Sprite):
         self.visit_count = 0
         self.position = robot.old_rect.center
         self.radius = robot.radius // 3
-        self.rect = pygame.Rect(self.position[0] - self.radius, self.position[1] - self.radius,
-                                2 * self.radius, 2 * self.radius)
+        # self.rect = pygame.Rect(self.position[0] - self.radius, self.position[1] - self.radius,
+        #                         2 * self.radius, 2 * self.radius)
+        self.rect = pygame.draw.circle(robot.background.layout, robot.color,
+                                       (self.position[0] - self.radius, self.position[1] - self.radius),
+                                       2 * self.radius)
 
     def __hash__(self):
         return hash(self.position)

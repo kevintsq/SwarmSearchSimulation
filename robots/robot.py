@@ -86,9 +86,9 @@ class Robot(pygame.sprite.Sprite):
         self.initial_gather_mode = initial_gather_mode
 
         if background.display is not None:
-            self.color_name, color = utils.get_color()
+            self.color_name, self.color = utils.get_color()
             self.image = pygame.Surface(Robot.SIZE)
-            self.image.fill(color)
+            self.image.fill(self.color)
             self.image.blit(pygame.transform.smoothscale(pygame.image.load("assets/pacman_mask.png").convert_alpha(),
                                                          Robot.SIZE), (0, 0), None, BLEND_RGBA_MIN)
             self.image.set_colorkey(pygame.Color("black"), RLEACCEL)

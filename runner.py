@@ -186,7 +186,7 @@ class PresentationRunner(AbstractRunner):
         generator = SiteGenerator(120, 60, 120, 10)
         try:
             layout = Layout.from_generator(generator, depart_from_edge=False)
-            manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 8,
+            manager = RandomSpreadingRobotManager(RobotUsingGas, self.logger, layout, 8,
                                                   depart_from_edge=False, initial_gather_mode=False)
             clock = pygame.time.Clock()
             frame_rate = config.DISPLAY_FREQUENCY
@@ -210,6 +210,48 @@ class PresentationRunner(AbstractRunner):
                 if not config.PAUSE:
                     if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
                         config.PAUSE = True
+                    layout.update()
+                    manager.update()
+                    pygame.display.update()
+                    # clock.tick(frame_rate)
+        except:
+            if not os.path.exists("debug"):
+                os.mkdir("debug")
+            with open("debug/gen_dbg.pkl", "wb") as file:
+                pickle.dump(generator, file)
+            import traceback
+            traceback.print_exc()
+
+
+class PresentationFileRunner(AbstractRunner):
+    def __init__(self):
+        super().__init__()
+        pygame.init()
+        pygame.display.set_caption("Simulation")
+
+    def run(self):
+        try:
+            layout = Layout.from_file("assets/newmainbuildinghalfhalf.lay")
+            manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 4,
+                                                  depart_from_edge=False, initial_gather_mode=False)
+            clock = pygame.time.Clock()
+            frame_rate = config.DISPLAY_FREQUENCY
+            while True:
+                for event in pygame.event.get():
+                    if event.type == QUIT:
+                        pygame.quit()
+                        # self.logger.stop()
+                        exit()
+                    elif event.type == KEYDOWN:
+                        if event.key == K_SPACE:
+                            config.PAUSE = not config.PAUSE
+                        if event.key == K_UP and frame_rate < config.DISPLAY_FREQUENCY:
+                            frame_rate += 5
+                        if event.key == K_DOWN and frame_rate > 5:
+                            frame_rate -= 5
+                if not config.PAUSE:
+                    # if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
+                    #     config.PAUSE = True
                     layout.update()
                     manager.update()
                     pygame.display.update()
@@ -340,5 +382,5 @@ class StatisticPresentationRunner(AbstractRunner):
 
 
 if __name__ == '__main__':
-    runner = PresentationRunner()
+    runner = PresentationFileRunner()
     runner.run()
