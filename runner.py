@@ -257,10 +257,6 @@ class PresentationFileRunner(AbstractRunner):
                     pygame.display.update()
                     # clock.tick(frame_rate)
         except:
-            if not os.path.exists("debug"):
-                os.mkdir("debug")
-            with open("debug/gen_dbg.pkl", "wb") as file:
-                pickle.dump(generator, file)
             import traceback
             traceback.print_exc()
 

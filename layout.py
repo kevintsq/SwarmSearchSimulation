@@ -240,7 +240,7 @@ class VisitedPlace(pygame.sprite.Sprite):
         self.radius = robot.radius // 3
         # self.rect = pygame.Rect(self.position[0] - self.radius, self.position[1] - self.radius,
         #                         2 * self.radius, 2 * self.radius)
-        self.rect = pygame.draw.circle(robot.background.layout, robot.color,
+        self.rect = pygame.draw.circle(robot.background.layout, config.BACKGROUND_COLOR,  # robot.color,
                                        (self.position[0] - self.radius, self.position[1] - self.radius),
                                        2 * self.radius)
 
