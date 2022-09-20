@@ -1,4 +1,4 @@
-# Swarm Search Simulation - A simulation environment for the project "An Improved Bug Algorithm for Swarm Robots with Olfactory and Auditory in a Denied Environment"
+# Swarm Search Simulation - A simulation environment for the project "OA-Bug: An Olfactory-Auditory Augmented Bug Algorithm for Swarm Robots in a Denied Environment"
 
 ![Simulation in Dark Mode](assets/Dark Mode.jpg)
 
