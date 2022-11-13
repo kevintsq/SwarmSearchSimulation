@@ -183,7 +183,7 @@ class PresentationRunner(AbstractRunner):
         pygame.display.set_caption("Simulation")
 
     def run(self):
-        generator = SiteGenerator(120, 60, 120, 10)
+        generator = SiteGenerator(40, 20, 30, 10)
         try:
             layout = Layout.from_generator(generator, depart_from_edge=False)
             manager = RandomSpreadingRobotManager(RobotUsingGas, self.logger, layout, 8,
@@ -378,5 +378,5 @@ class StatisticPresentationRunner(AbstractRunner):
 
 
 if __name__ == '__main__':
-    runner = PresentationFileRunner()
+    runner = PresentationRunner()
     runner.run()

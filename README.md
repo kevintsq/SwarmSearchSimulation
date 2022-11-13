@@ -18,7 +18,13 @@
    pip install -r requirements.txt
    ```
 
-3. Run `runner.py`.
+4. Run `runner.py`. Press the `SPCAE` key to pause. The window will be scaled according to the scaling factor of your current monitor. If the window is too large, you can change the `SCALING_FACTOR` in `config.py`, or modify the parameters of the `SiteGenerator` in `runner.py`. Typical configurations are as follows:
+
+   ```python
+   SiteGenerator(width=40, height=20, num_rooms=30)  # Small, max SCALING_FACTOR = 3 using a 4K monitor
+   SiteGenerator(width=60, height=30, num_rooms=40)  # Medium, max SCALING_FACTOR = 2 using a 4K monitor
+   SiteGenerator(width=120, height=60, num_rooms=120)  # Large, max SCALING_FACTOR = 1 using a 4K monitor
+   ```
 
 ## Explanations
 
@@ -36,7 +42,7 @@
 
 4. **Robot Manager, Runner, and Utilities**
 
-   They are classes that only serve for maintainability and scalability of the code. They can be modified at your wish. For example, one can toggle night mode, change scaling factor of the graphics and so on in `config.py`. We didn't use `argparse` for simplicity, but it can be easily adopted.
+   They are classes that only serve for maintainability and scalability of the code. They can be modified at your wish. For example, one can toggle night mode, set whether to pause at the beginning for diagnostic purposes and so on in `config.py`. We didn't use `argparse` for simplicity, but it can be easily adopted.
 
 ## Issues
 

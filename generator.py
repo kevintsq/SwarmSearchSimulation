@@ -11,7 +11,7 @@ import numpy as np
 
 
 class SiteGenerator:
-    def __init__(self, width: int, height: int, room_num: int, injuries: int, delete_fill=False):
+    def __init__(self, width=40, height=20, room_num=30, injuries=10, delete_fill=False):
         self.site = []
         self.site_array = np.zeros((height, width))
         self.v_corridor = []

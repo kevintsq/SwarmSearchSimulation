@@ -16,7 +16,7 @@ class Layout:
                  injuries: Optional[list] = None, departure_position=None, enable_display=True):
         """
         Creating a layout from a numpy.ndarray of site,
-        and an list of rooms and injuries which are optional.
+        and a list of rooms and injuries which are optional.
         """
         row_cnt, col_cnt = site.shape
         size = int((col_cnt - 1) * Wall.SPAN_UNIT), int((row_cnt - 1) * Wall.SPAN_UNIT)
@@ -112,7 +112,7 @@ class Layout:
             for j, char in enumerate(line):
                 site[i, j] = ord(char)
                 if char == 'D':
-                    departure_position = (j * Wall.SPAN_UNIT, i * Wall.SPAN_UNIT)
+                    departure_position = int(j * Wall.SPAN_UNIT), int(i * Wall.SPAN_UNIT)
         return Layout(site, enable_display=enable_display, departure_position=departure_position)
 
     @staticmethod
@@ -138,8 +138,7 @@ class Layout:
 
     def update(self):
         """Redraw method that should be called for each frame."""
-        if self.display is None:
-            raise Exception("No need to update layout because no display is initialized.")
+        assert self.display is not None, "If no display is initialized, no need to update layout."
         self.display.blit(self.layout, self.rect)
 
     def count_rescued_injuries(self):
@@ -163,7 +162,7 @@ class Layout:
 
 class Wall(pygame.sprite.Sprite):
     SPAN_UNIT = 32 * config.SCALING_FACTOR
-    HALF_SPAN_UNIT = 16 * config.SCALING_FACTOR
+    HALF_SPAN_UNIT = int(16 * config.SCALING_FACTOR)
     WIDTH = int(3 * config.SCALING_FACTOR)
     if WIDTH == 0:
         WIDTH = 1
@@ -216,7 +215,7 @@ class Door(pygame.sprite.Sprite):
     def __init__(self, x, y, background: Layout):
         super().__init__()
         self.rect = pygame.draw.circle(background.layout, config.BACKGROUND_COLOR,  # pygame.Color("red"),
-                                       (y * Wall.SPAN_UNIT, x * Wall.SPAN_UNIT), Wall.HALF_SPAN_UNIT)
+                                       (int(y * Wall.SPAN_UNIT), int(x * Wall.SPAN_UNIT)), Wall.HALF_SPAN_UNIT)
         self.position = self.rect.center
 
     def __hash__(self):
@@ -238,11 +237,11 @@ class VisitedPlace(pygame.sprite.Sprite):
         self.visit_count = 0
         self.position = robot.old_rect.center
         self.radius = robot.radius // 3
-        # self.rect = pygame.Rect(self.position[0] - self.radius, self.position[1] - self.radius,
-        #                         2 * self.radius, 2 * self.radius)
-        self.rect = pygame.draw.circle(robot.background.layout, config.BACKGROUND_COLOR,  # robot.color,
-                                       (self.position[0] - self.radius, self.position[1] - self.radius),
-                                       2 * self.radius)
+        self.rect = pygame.Rect(self.position[0] - self.radius, self.position[1] - self.radius,
+                                2 * self.radius, 2 * self.radius)
+        # self.rect = pygame.draw.circle(robot.background.layout, config.BACKGROUND_COLOR,  # robot.color,
+        #                                (self.position[0] - self.radius, self.position[1] - self.radius),
+        #                                2 * self.radius)
 
     def __hash__(self):
         return hash(self.position)
