@@ -14,7 +14,7 @@ class RobotUsingGasAndSound(RobotUsingGas, RobotUsingSound):
             super().transfer_when_colliding_wall()
             robot: RobotUsingGasAndSound = self.get_robot()
             azimuth = robot.get_azimuth_according_to_others()
-            diff = utils.normalize_azimuth(robot.azimuth - (azimuth + 180))
+            diff = utils.normalize_azimuth(robot.azimuth - (azimuth + 180))  # OK
             # robot.logger.debug(f"[{robot}] azimuth: {azimuth}, self: {robot.azimuth}, diff: {diff}")
             if robot.azimuth % 90 == 0:
                 robot.turn_right(90 if diff > 0 else -90, update_collide_turn_func=True)
@@ -111,7 +111,7 @@ class RobotUsingGasAndSound(RobotUsingGas, RobotUsingSound):
             robot: RobotUsingGasAndSound = self.get_robot()
             robot.cancel_go_front()
             # robot.logger.debug(f"[{robot}] Collides another robot! Turning!")
-            robot.turn_right(90)  # TODO
+            robot.turn_right(90)  # turn_left is also OK
             robot.collide_turn_function = None  # because need to be updated
 
         def transfer_when_not_following_wall(self):
@@ -148,7 +148,7 @@ class RobotUsingGasAndSound(RobotUsingGas, RobotUsingSound):
             self.collide_turn_function = None
             # return random.randint(-179, 180)
             self.original_azimuth = utils.normalize_azimuth(self.original_azimuth + 180)
-            return self.original_azimuth  # TODO
+            return self.original_azimuth  # may be modified
         else:
             vector = pygame.Vector2()
             for robot in self.group:

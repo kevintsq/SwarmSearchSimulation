@@ -20,7 +20,7 @@ class Robot(pygame.sprite.Sprite):
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()
             robot = self.get_robot()
-            robot.turn_right(robot.azimuth % 90 - 90, update_collide_turn_func=True)  # TODO
+            robot.turn_right(robot.azimuth % 90 - 90, update_collide_turn_func=True)  # turn_left is also OK
             robot.state = robot.following_wall_state
 
         def transfer_to_next_state(self):
@@ -331,7 +331,7 @@ class Robot(pygame.sprite.Sprite):
                 if not room.visited:  # OK
                     self.visit_room_count += 1
                     room.update()
-        else:  # FIXME: need to change
+        else:  # may be modified
             self.in_room = False
         rescued_injuries = pygame.sprite.spritecollide(self, self.background.injuries, False)
         if len(rescued_injuries) != 0:

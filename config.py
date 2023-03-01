@@ -5,7 +5,7 @@ from pygame import Color
 MAX_ITER = 100
 PAUSE = False
 DARK_MODE = True
-RESULT_DIR = "results_new"
+RESULT_DIR = "results"
 
 if DARK_MODE:
     FOREGROUND_COLOR = Color("white")

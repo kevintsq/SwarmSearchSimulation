@@ -12,7 +12,7 @@ class RobotUsingGas(Robot):
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()
             robot: RobotUsingGas = self.get_robot()
-            robot.turn_right(robot.azimuth % 90 - 90, update_collide_turn_func=True)  # TODO
+            robot.turn_right(robot.azimuth % 90 - 90, update_collide_turn_func=True)  # turn_left is also OK
             robot.state = robot.following_wall_state
 
         def transfer_when_not_following_wall(self):
