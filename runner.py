@@ -70,7 +70,9 @@ class StatisticRunner(AbstractRunner):
 
     def run(self):
         site_width, site_height, room_cnt, injury_cnt, max_search_action_cnt, max_return_action_cnt =\
-            120, 60, 120, 10, 4000, 1000
+            60, 30, 30, 10, 1000, 250  # small
+        # 80, 40, 60, 10, 2000, 500  # medium
+        # 120, 60, 120, 10, 4000, 1000  # large
         workers = []
         with Pool() as p:
             for i in range(config.MAX_ITER):
@@ -88,7 +90,7 @@ class StatisticRunner(AbstractRunner):
             cnt = len(workers)
             for i, worker in enumerate(workers):
                 worker.wait()
-                print(f"{i + 1} of {cnt} ({(i + 1) * 100 / cnt: .2f}%) finished with status {worker.get()}.")
+                print(f"{i + 1} of {cnt} ({(i + 1) * 100 / cnt:6.2f}%) finished with status {worker.get()}.")
         # self.logger.stop()
 
 
@@ -378,5 +380,5 @@ class StatisticPresentationRunner(AbstractRunner):
 
 
 if __name__ == '__main__':
-    runner = PresentationRunner()
+    runner = StatisticRunner()
     runner.run()

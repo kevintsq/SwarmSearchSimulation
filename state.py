@@ -33,7 +33,12 @@ class AbstractState:
     def transfer_when_colliding_another_robot(self):
         self.__robot.cancel_go_front()
         # self.__robot.logger.debug(f"[{self.__robot}] Collides another robot! Turning!")
-        self.__robot.turn_right(90)  # TODO
+        if self.__robot.collide_turn_function is None:
+            self.__robot.turn_right(90)  # TODO
+        elif self.__robot.collide_turn_function == self.__robot.turn_left:
+            self.__robot.turn_left(90)
+        elif self.__robot.collide_turn_function == self.__robot.turn_right:
+            self.__robot.turn_right(90)
         self.__robot.state = self.__robot.just_started_state
 
     def transfer_when_not_following_wall(self):
