@@ -8,7 +8,7 @@
 
 1. Clone the repository.
 
-2. Make sure Python 3.6+ is installed.
+2. Make sure Python 3.8+ is installed. (The most recent 3.11 is recommended due to its great performance improvement.)
 
 3. Make sure the environment meets the requirements.
 
@@ -44,9 +44,11 @@
 
    They are classes that only serve for maintainability and scalability of the code. They can be modified at your wish. For example, one can toggle night mode, set whether to pause at the beginning for diagnostic purposes and so on in `config.py`. We didn't use `argparse` for simplicity, but it can be easily adopted.
 
-## Issues
+## Notes
 
-If you find any bugs, misuse of words, bad grammar or need further explanations, please feel free to post issues and we will fix them when we are available to do so.
+If you find any bugs, misuse of words, bad grammar or need further explanations, please feel free to post issues, and we will fix them when we are available to do so.
+
+If you use the latest CPUs which are fast and have many cores, you may experience "database is locked" when using SQLite3 in the `StatisticRunner` to log the data because SQLite has a limited concurrent functionality. In this case, you can use MySQL instead.
 
 ## Educational Uses
 

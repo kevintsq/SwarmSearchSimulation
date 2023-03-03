@@ -3,6 +3,20 @@ import math
 import random
 
 import pygame
+import human_readable
+
+
+def timed(f):
+    def wrapper(*args, **kwargs):
+        import time
+        import datetime
+        start = time.time()
+        result = f(*args, **kwargs)
+        end = time.time()
+        print(f"Time taken by {f.__name__}: {human_readable.precise_delta(datetime.timedelta(seconds=end - start))}")
+        return result
+
+    return wrapper
 
 
 class Direction(Enum):

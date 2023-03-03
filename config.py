@@ -6,6 +6,9 @@ MAX_ITER = 100
 PAUSE = False
 DARK_MODE = True
 RESULT_DIR = "results"
+MYSQL_HOST = "localhost"
+MYSQL_USER = "root"
+MYSQL_PASSWORD = ""  # to be completed
 
 if DARK_MODE:
     FOREGROUND_COLOR = Color("white")

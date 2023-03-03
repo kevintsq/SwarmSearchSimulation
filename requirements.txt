@@ -1,3 +1,5 @@
 pygame
 pywin32; platform_system == "Windows"
 numpy
+human-readable
+psutil
