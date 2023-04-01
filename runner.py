@@ -68,7 +68,8 @@ class StatisticRunner(AbstractRunner):
         # 60, 30, 30, 10, 1000, 250  # small
         workers = []
         with Pool(cpu_count(logical=False)) as p:
-            # physical cores are used instead of logical ones because there are no benefits of using hyper-threading
+            # Physical cores are used instead of logical ones because there are no benefits of using hyper-threading
+            # on the latest Intel processors.
             for i in range(config.MAX_ITER):
                 try:
                     generator = SiteGenerator(site_width, site_height, room_cnt, injury_cnt)
@@ -140,7 +141,7 @@ class DebugRunner(AbstractRunner):
                 if event.type == QUIT:
                     pygame.quit()
                     # self.logger.stop()
-                    exit()
+                    return
                 elif event.type == KEYDOWN:
                     if event.key == K_SPACE:
                         layout.update()
@@ -156,14 +157,14 @@ class TestRunner(AbstractRunner):
 
     def run(self):
         layout = Layout.from_file("assets/empty_room.lay")
-        manager = SpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 4,
-                                        depart_from_edge=True, initial_gather_mode=False)
+        manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 4,
+                                              depart_from_edge=True, initial_gather_mode=False)
         while True:
             for event in pygame.event.get():
                 if event.type == QUIT:
                     pygame.quit()
                     # self.logger.stop()
-                    exit()
+                    return
                 elif event.type == KEYDOWN:
                     if event.key == K_SPACE:
                         layout.update()
@@ -194,7 +195,7 @@ class PresentationRunner(AbstractRunner):
                             pickle.dump(generator, file)
                         pygame.quit()
                         # self.logger.stop()
-                        exit()
+                        return
                     elif event.type == KEYDOWN:
                         if event.key == K_SPACE:
                             config.PAUSE = not config.PAUSE
@@ -236,7 +237,7 @@ class PresentationFileRunner(AbstractRunner):
                     if event.type == QUIT:
                         pygame.quit()
                         # self.logger.stop()
-                        exit()
+                        return
                     elif event.type == KEYDOWN:
                         if event.key == K_SPACE:
                             config.PAUSE = not config.PAUSE
@@ -275,7 +276,7 @@ class DebugPresentationRunner(AbstractRunner):
                 if event.type == QUIT:
                     pygame.quit()
                     # self.logger.stop()
-                    exit()
+                    return
                 elif event.type == KEYDOWN:
                     if event.key == K_SPACE:
                         config.PAUSE = not config.PAUSE
@@ -316,7 +317,7 @@ class StatisticPresentationRunner(AbstractRunner):
                         with open(f"debug/gen_dbg.pkl", "wb") as file:
                             pickle.dump(generator, file)
                         pygame.quit()
-                        exit()
+                        return
                     elif event.type == KEYDOWN:
                         if event.key == K_SPACE:
                             config.PAUSE = not config.PAUSE
@@ -338,7 +339,7 @@ class StatisticPresentationRunner(AbstractRunner):
                         with open(f"debug/gen_dbg.pkl", "wb") as file:
                             pickle.dump(generator, file)
                         pygame.quit()
-                        exit()
+                        return
                     elif event.type == KEYDOWN:
                         if event.key == K_SPACE:
                             config.PAUSE = not config.PAUSE
@@ -359,8 +360,8 @@ class StatisticPresentationRunner(AbstractRunner):
                         with open(f"debug/gen_dbg.pkl", "wb") as file:
                             pickle.dump(generator, file)
                         pygame.quit()
-                        exit()
-        except Exception:
+                        return
+        except:
             if not os.path.exists("debug"):
                 os.mkdir("debug")
             with open(f"debug/gen_dbg.pkl", "wb") as file:
@@ -370,5 +371,5 @@ class StatisticPresentationRunner(AbstractRunner):
 
 
 if __name__ == '__main__':
-    runner = PresentationRunner()
+    runner = StatisticRunner(LoggerType.MySQL)
     runner.run()
