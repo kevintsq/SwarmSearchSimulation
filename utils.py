@@ -1,19 +1,31 @@
+import ctypes
+import datetime
 from enum import Enum, auto
 import math
 import random
+import sys
+import time
 
 import pygame
 import human_readable
 
 
+ES_SYSTEM_REQUIRED = 0x00000001
+ES_DISPLAY_REQUIRED = 0x00000002
+ES_AWAYMODE_REQUIRED = 0x00000040
+ES_CONTINUOUS = 0x80000000
+
+
 def timed(f):
     def wrapper(*args, **kwargs):
-        import time
-        import datetime
+        if sys.platform == 'win32':
+            ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
         start = time.time()
         result = f(*args, **kwargs)
         end = time.time()
         print(f"Time taken by {f.__name__}: {human_readable.precise_delta(datetime.timedelta(seconds=end - start))}")
+        if sys.platform == 'win32':
+            ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
         return result
 
     return wrapper

@@ -182,8 +182,8 @@ class PresentationRunner(AbstractRunner):
         generator = SiteGenerator(40, 20, 30, 10)
         try:
             layout = Layout.from_generator(generator, depart_from_edge=False)
-            manager = RandomSpreadingRobotManager(RobotUsingGas, self.logger, layout, 8,
-                                                  depart_from_edge=False, initial_gather_mode=False)
+            manager = SpreadingRobotManager(RobotUsingGas, self.logger, layout, 4,
+                                            depart_from_edge=False, initial_gather_mode=False)
             clock = pygame.time.Clock()
             frame_rate = config.DISPLAY_FREQUENCY
             while True:
@@ -371,5 +371,5 @@ class StatisticPresentationRunner(AbstractRunner):
 
 
 if __name__ == '__main__':
-    runner = StatisticRunner(LoggerType.MySQL)
+    runner = PresentationRunner()
     runner.run()
