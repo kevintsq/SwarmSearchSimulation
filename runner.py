@@ -21,7 +21,6 @@ class AbstractRunner(ABC):
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
-                # self.logger.stop()
                 return
             elif event.type == KEYDOWN:
                 if event.key == K_SPACE:
@@ -41,7 +40,7 @@ def run(i, site_width, site_height, generator, logger_type, depart_from_edge, ro
         try:
             layout = Layout.from_generator(generator, enable_display=False, depart_from_edge=depart_from_edge)
             manager = RandomSpreadingRobotManager(robot_type, logger, layout, robot_cnt,
-                                                  depart_from_edge=depart_from_edge, initial_gather_mode=False)
+                                                  depart_from_edge=depart_from_edge, act_after_finding_injury=False)
             while not (layout or manager.action_count >= max_search_action_cnt):
                 manager.update()
                 if manager.action_count % 100 == 0:
@@ -122,7 +121,7 @@ class GatheringStatisticRunner(AbstractRunner):
             try:
                 layout = Layout.from_generator(generator, enable_display=False, depart_from_edge=False)
                 manager = RandomSpreadingRobotManager(robot_type, self.logger, layout, robot_cnt,
-                                                      depart_from_edge=False, initial_gather_mode=True)
+                                                      depart_from_edge=False, act_after_finding_injury=True)
                 while True:
                     if manager or manager.first_injury_action_count != 0 and \
                             manager.action_count - manager.first_injury_action_count >= 1000:
@@ -151,12 +150,11 @@ class DebugRunner(AbstractRunner):
             generator: SiteGenerator = pickle.load(file)
         layout = Layout.from_generator(generator, depart_from_edge=False)
         manager = SpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 8,
-                                        depart_from_edge=False, initial_gather_mode=False)
+                                        depart_from_edge=False, act_after_finding_injury=False)
         while True:
             for event in pygame.event.get():
                 if event.type == QUIT:
                     pygame.quit()
-                    # self.logger.stop()
                     return
                 elif event.type == KEYDOWN:
                     if event.key == K_SPACE:
@@ -174,12 +172,11 @@ class TestRunner(AbstractRunner):
     def run(self):
         layout = Layout.from_file("assets/empty_room.lay")
         manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 4,
-                                              depart_from_edge=True, initial_gather_mode=False)
+                                              depart_from_edge=True, act_after_finding_injury=False)
         while True:
             for event in pygame.event.get():
                 if event.type == QUIT:
                     pygame.quit()
-                    # self.logger.stop()
                     return
                 elif event.type == KEYDOWN:
                     if event.key == K_SPACE:
@@ -199,7 +196,7 @@ class PresentationRunner(AbstractRunner):
         try:
             layout = Layout.from_generator(self.generator, depart_from_edge=False)
             manager = SpreadingRobotManager(RobotUsingGas, self.logger, layout, 4,
-                                            depart_from_edge=False, initial_gather_mode=False)
+                                            depart_from_edge=False, act_after_finding_injury=False)
             clock = pygame.time.Clock()
             while not self.should_quit():
                 if not config.PAUSE:
@@ -225,7 +222,6 @@ class PresentationRunner(AbstractRunner):
                 with open("debug/gen_dbg.pkl", "wb") as file:
                     pickle.dump(self.generator, file)
                 pygame.quit()
-                # self.logger.stop()
                 return True
             elif event.type == KEYDOWN:
                 if event.key == K_SPACE:
@@ -244,22 +240,18 @@ class PresentationFileRunner(AbstractRunner):
         pygame.display.set_caption("Simulation")
 
     def run(self):
-        try:
-            layout = Layout.from_file("assets/newmainbuildinghalfhalf.lay")
-            manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 4,
-                                                  depart_from_edge=False, initial_gather_mode=False)
-            clock = pygame.time.Clock()
-            while not self.should_quit():
-                if not config.PAUSE:
-                    # if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
-                    #     config.PAUSE = True
-                    layout.update()
-                    manager.update()
-                    pygame.display.update()
-                    clock.tick(self.frame_rate)
-        except:
-            import traceback
-            traceback.print_exc()
+        layout = Layout.from_file("assets/newmainbuildinghalfhalf.lay")
+        manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 4,
+                                              depart_from_edge=False, act_after_finding_injury=False)
+        clock = pygame.time.Clock()
+        while not self.should_quit():
+            if not config.PAUSE:
+                # if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
+                #     config.PAUSE = True
+                layout.update()
+                manager.update()
+                pygame.display.update()
+                clock.tick(self.frame_rate)
 
 
 class DebugPresentationRunner(AbstractRunner):
@@ -273,7 +265,7 @@ class DebugPresentationRunner(AbstractRunner):
             generator: SiteGenerator = pickle.load(file)
         layout = Layout.from_generator(generator, depart_from_edge=False)
         manager = RandomSpreadingRobotManager(RobotUsingGas, self.logger, layout, 10,
-                                              depart_from_edge=False, initial_gather_mode=False)
+                                              depart_from_edge=False, act_after_finding_injury=False)
         clock = pygame.time.Clock()
         frame_rate = config.DISPLAY_FREQUENCY
         while not self.should_quit():
@@ -288,36 +280,31 @@ class DebugPresentationRunner(AbstractRunner):
 
 class StatisticPresentationRunner(AbstractRunner):
     def __init__(self):
-        super().__init__()
+        super().__init__(LoggerType.File)
         pygame.init()
         pygame.display.set_caption("Simulation")
-        self.robot_cnt = 2
-        site_width, site_height, room_cnt, injury_cnt, self.robot_type = 120, 60, 120, 10, RobotUsingGasAndSound
+        self.robot_cnt = 8
+        site_width, site_height, room_cnt, injury_cnt, self.robot_type = 120, 60, 120, 1, RobotUsingGasAndSound
         self.generator = SiteGenerator(site_width, site_height, room_cnt, injury_cnt)
 
     def run(self):
         try:
             layout = Layout.from_generator(self.generator, depart_from_edge=False)
             manager = RandomSpreadingRobotManager(self.robot_type, self.logger, layout, self.robot_cnt,
-                                                  depart_from_edge=False, initial_gather_mode=False)
-            clock = pygame.time.Clock()
-            while not (layout or manager.action_count >= 500):
+                                                  depart_from_edge=False, act_after_finding_injury=True)
+            self.logger.log("Action", "JustStarted", "FollowingWall", "JustStartedDelta", "FollowingWallDelta")
+            # clock = pygame.time.Clock()
+            while not layout and manager.first_injury_action_count == 0:
                 if self.should_quit():
                     return
                 if not config.PAUSE:
                     layout.update()
                     manager.update()
+                    if manager.action_count % 100 == 0:
+                        self.logger.log(*manager.report_macro_states())
                     pygame.display.update()
-                    clock.tick(self.frame_rate)
-            manager.enter_gathering_mode()
-            while not (manager or manager.action_count - manager.first_injury_action_count >= 500):
-                if self.should_quit():
-                    return
-                if not config.PAUSE:
-                    layout.update()
-                    manager.update()
-                    pygame.display.update()
-                    clock.tick(self.frame_rate)
+                    # clock.tick(self.frame_rate)
+            self.logger.log(*manager.report_macro_states())
             while not self.should_quit():
                 pass
         except:

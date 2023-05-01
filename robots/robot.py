@@ -10,33 +10,16 @@ class Robot(pygame.sprite.Sprite):
 
     WIDTH = int(24 * config.SCALING_FACTOR)
     SIZE = (WIDTH, WIDTH)
-    GATHER_THRESHOLD = WIDTH * 10
     radius = WIDTH // 2
 
     class JustStartedState(AbstractState):
-        def __init__(self, robot):
-            super().__init__(robot)
-
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()
-            robot = self.get_robot()
+            robot: Robot = self.get_robot()
             robot.turn_right(robot.azimuth % 90 - 90, update_collide_turn_func=True)  # turn_left is also OK
             robot.state = robot.following_wall_state
 
-        def transfer_to_next_state(self):
-            robot: Robot = self.get_robot()
-            robot.attempt_go_front()
-            if robot.is_colliding_wall():
-                self.transfer_when_colliding_wall()
-            elif robot.is_colliding_another_robot():
-                self.transfer_when_colliding_another_robot()
-            else:
-                robot.commit_go_front()
-
     class FollowingWallState(AbstractState):
-        def __init__(self, robot):
-            super().__init__(robot)
-
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()
             robot: Robot = self.get_robot()
@@ -50,40 +33,27 @@ class Robot(pygame.sprite.Sprite):
             robot.collide_turn_function = None
             robot.state = robot.just_started_state
 
-        def transfer_to_next_state(self):
-            robot: Robot = self.get_robot()
-            robot.attempt_go_front()
-            if robot.is_colliding_wall():
-                self.transfer_when_colliding_wall()
-            elif robot.is_colliding_another_robot():
-                self.transfer_when_colliding_another_robot()
-            elif not robot.is_moving_along_wall():  # Needs Turning
-                self.transfer_when_not_following_wall()
-            elif robot.is_found_injuries():
-                self.transfer_when_found_injuries()
-            else:
-                robot.commit_go_front()
-
     class FoundInjuryState(AbstractState):
-        def __init__(self, robot):
-            super().__init__(robot)
-
+        """
+        Final state for gathering if robot.act_after_finding_injury == False,
+        or if found injuries and robot.act_after_finding_injury == True.
+        """
         def transfer_to_next_state(self):
             robot: Robot = self.get_robot()
             robot.attempt_go_front()
-            if robot.is_colliding_wall() or robot.is_colliding_another_robot() or robot.is_leaving_gathering_circle():
+            if robot.is_colliding_wall() or robot.is_colliding_another_robot():
                 robot.cancel_go_front()
             else:
                 robot.commit_go_front()
 
-    def __init__(self, robot_id, logger, group, background: Layout, position, azimuth=0, initial_gather_mode=False):
+    def __init__(self, robot_id, logger, group, background: Layout, position, azimuth=0, act_after_finding_injury=False):
         super().__init__()
         self.id: int = robot_id
         self.logger = logger
         self.group: pygame.sprite.AbstractGroup = group
         self.background = background
         self.position = position
-        self.initial_gather_mode = initial_gather_mode
+        self.act_after_finding_injury = act_after_finding_injury
 
         if background.display is not None:
             self.color_name, self.color = utils.get_color()
@@ -106,8 +76,6 @@ class Robot(pygame.sprite.Sprite):
         self.original_azimuth = azimuth
         self.turn_to_azimuth(azimuth)
         self.collide_turn_function = None
-        self.gathering_position = None  # None means not in gathering mode.
-        self.gathering_azimuth = None
 
         self.action_count = 0
         self.colliding_others_count = 0
@@ -286,33 +254,13 @@ class Robot(pygame.sprite.Sprite):
             else:
                 self.turn_right(self.azimuth + 90)
 
-    def is_found_injuries(self):
-        if self.initial_gather_mode:
+    def has_found_injuries(self):
+        """Returns according to self.act_after_finding_injury."""
+        if self.act_after_finding_injury:
             self.found_injuries = pygame.sprite.spritecollide(self, self.background.injuries, False)
             return len(self.found_injuries) != 0
-        else:
-            return self.gathering_position is not None
-
-    def is_finish_gathering(self):
-        return pygame.sprite.collide_circle(self, self.found_injuries[0]) or \
-            utils.pygame_cartesian_diff_vec(self.position,
-                                            self.found_injuries[0].rect.center).length() < Robot.GATHER_THRESHOLD
-
-    def is_leaving_gathering_circle(self):
-        return utils.pygame_cartesian_diff_vec(self.position,
-                                               self.found_injuries[0].rect.center).length() > Robot.GATHER_THRESHOLD
-
-    def is_others_found_injuries(self):
-        if self.initial_gather_mode:
-            for robot in self.group:
-                if robot != self and robot.state == self.found_injury_state:  # OK
-                    self.found_injuries = robot.found_injuries  # OK
-                    self.gathering_position = robot.rect.center
-                    _, self.gathering_azimuth = self.get_gathering_vector().as_polar()
-                    return True
-            return False
-        else:
-            return self.gathering_position is not None
+            # if returns True, self.mission_complete will be set to True and self will be in FoundInjuryState
+        return False
 
     def update(self):
         """
@@ -345,3 +293,94 @@ class Robot(pygame.sprite.Sprite):
 
     def report(self):
         return self.visit_room_count + self.rescue_count, self.rescue_count, self.colliding_others_count
+
+
+class GatherableRobot(Robot):
+    GATHER_THRESH = Robot.WIDTH * 10
+
+    class JustStartedState(Robot.JustStartedState, GatherableAbstractState):
+        pass
+
+    class FollowingWallState(Robot.FollowingWallState, GatherableAbstractState):
+        pass
+
+    class GatheringState(GatherableAbstractState):
+        def transfer_when_colliding_another_robot(self):
+            robot: GatherableRobot = self.get_robot()
+            robot.cancel_go_front()
+            # robot.logger.debug(f"[{robot}] Collides another robot! Turning!")
+            robot.turn_right(90)  # turn_left is also OK
+            robot.collide_turn_function = None  # because need to be updated
+
+        def transfer_when_not_following_wall(self):
+            robot: GatherableRobot = self.get_robot()
+            robot.commit_go_front()
+            # robot.logger.debug(f"[{robot}] not following wall!")
+            _, robot.gathering_azimuth = robot.get_gathering_vector().as_polar()
+            robot.turn_to_azimuth(robot.gathering_azimuth)
+            robot.just_followed_wall = None
+            robot.collide_turn_function = None
+
+        def transfer_to_next_state(self):
+            robot: GatherableRobot = self.get_robot()
+            robot.attempt_go_front()
+            if robot.has_finished_gathering():
+                self.transfer_when_finish_gathering()
+            elif robot.is_colliding_wall():
+                self.transfer_when_colliding_wall()
+            elif robot.is_colliding_another_robot():
+                self.transfer_when_colliding_another_robot()
+            elif not robot.is_moving_along_wall():  # Needs Turning
+                self.transfer_when_not_following_wall()
+            else:
+                robot.commit_go_front()
+
+    class FoundInjuryState(GatherableAbstractState):
+        """
+        Final state for gathering if robot.act_after_finding_injury == False,
+        or if found injuries and robot.act_after_finding_injury == True.
+        """
+
+        def transfer_to_next_state(self):
+            robot: GatherableRobot = self.get_robot()
+            robot.attempt_go_front()
+            if robot.is_colliding_wall() or robot.is_colliding_another_robot() or robot.is_leaving_gathering_circle():
+                robot.cancel_go_front()
+            else:
+                robot.commit_go_front()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.gathering_state = self.GatheringState(self)
+        self.gathering_position = None  # None means not in gathering mode.
+        self.gathering_azimuth = None
+
+    def others_have_found_injuries(self):
+        """Returns according to self.act_after_finding_injury."""
+        if self.act_after_finding_injury:
+            for robot in self.group:
+                if robot != self and robot.state == self.found_injury_state:  # OK
+                    self.found_injuries = robot.found_injuries  # OK
+                    self.gathering_position = robot.rect.center
+                    return True
+        return False
+
+    def has_finished_gathering(self):
+        return pygame.sprite.collide_circle(self, self.found_injuries[0]) or \
+            utils.pygame_cartesian_diff_vec(self.position,
+                                            self.found_injuries[0].rect.center).length() < GatherableRobot.GATHER_THRESH
+
+    def is_leaving_gathering_circle(self):
+        return utils.pygame_cartesian_diff_vec(self.position,
+                                               self.found_injuries[0].rect.center).length() > GatherableRobot.GATHER_THRESH
+
+    def get_nearest_door_vector(self) -> pygame.Vector2:
+        door = min(self.background.doors,
+                   key=lambda d: utils.pygame_cartesian_diff_vec(self.rect.center, d.position).length())
+        return utils.pygame_cartesian_diff_vec(self.rect.center, door.position)
+
+    def get_gathering_vector(self) -> pygame.Vector2:
+        if self.in_room:
+            return self.get_nearest_door_vector()
+        else:
+            return utils.pygame_cartesian_diff_vec(self.rect.center, self.gathering_position)

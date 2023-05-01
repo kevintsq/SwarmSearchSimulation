@@ -57,6 +57,10 @@ class AbstractLogger(ABC):
             self.attributes_with_type[f"robot_{i}_collides"] = "INT"
         self.attributes = tuple(self.attributes_with_type.keys())
 
+    @abstractmethod
+    def __del__(self):
+        pass
+
     def __enter__(self):
         return self
 
@@ -66,10 +70,6 @@ class AbstractLogger(ABC):
     @abstractmethod
     def log(self, *items):
         """items must be a tuple of the same order as self.attributes!!!"""
-
-    @abstractmethod
-    def close(self):
-        pass
 
 
 class MySQLLogger(AbstractLogger):
@@ -92,15 +92,15 @@ class MySQLLogger(AbstractLogger):
                 f"CREATE TABLE IF NOT EXISTS results ({','.join((' '.join(item) for item in self.attributes_with_type.items()))});")
         self.db.commit()
 
+    def __del__(self):
+        self.db.commit()
+        self.db.close()
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.db.commit()
 
     def log(self, *items):
         self.cursor.execute(f"INSERT INTO results ({','.join(self.attributes[:len(items)])}) VALUES {items!r};")
-
-    def close(self):
-        self.db.commit()
-        self.db.close()
 
 
 class SQLite3Logger(AbstractLogger):
@@ -121,12 +121,12 @@ class SQLite3Logger(AbstractLogger):
                 f"CREATE TABLE results ({','.join((' '.join(item) for item in self.attributes_with_type.items()))});")
             self.db.commit()
 
+    def __del__(self):
+        self.db.close()
+
     def log(self, *items):
         self.cursor.execute(f"INSERT INTO results ({','.join(self.attributes[:len(items)])}) VALUES {items!r};")
         self.db.commit()
-
-    def close(self):
-        self.db.close()
 
 
 class FileLogger(AbstractLogger):
@@ -163,9 +163,9 @@ class FileLogger(AbstractLogger):
         self.file_listener.start()
 
         if reset:
-            self.logger.info(self.attributes)
+            self.log(*self.attributes)
 
-    def close(self):
+    def __del__(self):
         self.console_listener.stop()
         self.file_listener.stop()
 
