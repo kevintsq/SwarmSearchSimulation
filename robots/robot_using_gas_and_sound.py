@@ -17,6 +17,9 @@ class RobotUsingGasAndSound(RobotUsingGas, RobotUsingSound):
             robot.just_followed_wall = None
             robot.collide_turn_function = None
 
+    class FollowingWallState(RobotUsingGas.FollowingWallState, GatherableAbstractState):
+        pass
+
     class GatheringState(GatherableRobot.GatheringState):
         def transfer_when_colliding_wall(self):
             super().transfer_when_colliding_wall()

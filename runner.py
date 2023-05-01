@@ -8,13 +8,16 @@ from robot_manager import *
 
 
 class AbstractRunner(ABC):
-    def __init__(self, logger_type=LoggerType.SQLite3):
+    def __init__(self, logger_type=LoggerType.SQLite3, enable_display=True):
         self.logger_type = logger_type
         self.logger = Logger.get_logger(logger_type, reset=True)
         self.frame_rate = config.DISPLAY_FREQUENCY
+        if enable_display:
+            pygame.init()
+            pygame.display.set_caption("Simulation")
 
     @abstractmethod
-    def run(self, *args, **kwargs):
+    def start(self, *args, **kwargs):
         pass
 
     def should_quit(self, *args, **kwargs):
@@ -31,38 +34,43 @@ class AbstractRunner(ABC):
                     self.frame_rate -= 5
 
 
-lock = Lock()
+class StatisticRunner(AbstractRunner):
+    lock = Lock()
 
+    def __init__(self, logger_type):
+        super().__init__(logger_type, enable_display=False)
 
-def run(i, site_width, site_height, generator, logger_type, depart_from_edge, robot_type, robot_cnt,
-        max_search_action_cnt, max_return_action_cnt):
-    with Logger(logger_type) as logger:
+    @staticmethod
+    def run(i, site_width, site_height, generator, logger_type, depart_from_edge, robot_type, robot_cnt,
+            max_search_action_cnt, max_return_action_cnt):
         try:
-            layout = Layout.from_generator(generator, enable_display=False, depart_from_edge=depart_from_edge)
-            manager = RandomSpreadingRobotManager(robot_type, logger, layout, robot_cnt,
-                                                  depart_from_edge=depart_from_edge, act_after_finding_injury=False)
-            while not (layout or manager.action_count >= max_search_action_cnt):
-                manager.update()
-                if manager.action_count % 100 == 0:
-                    logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
-                               'Edge' if depart_from_edge else 'Center', robot_type.__name__, robot_cnt,
-                               'Search', *layout.report(), 0, *manager.report_search())
-            logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
-                       'Edge' if depart_from_edge else 'Center', robot_type.__name__, robot_cnt,
-                       'SearchFinished', *layout.report(), 0, *manager.report_search())
-            if robot_type != Robot and robot_type != RobotUsingGas:
-                manager.enter_gathering_mode()
-                while not (manager or manager.action_count - manager.first_injury_action_count >= max_return_action_cnt):
+            with Logger(logger_type) as logger:
+                layout = Layout.from_generator(generator, enable_display=False, depart_from_edge=depart_from_edge)
+                manager = RandomSpreadingRobotManager(robot_type, logger, layout, robot_cnt,
+                                                      depart_from_edge=depart_from_edge, act_after_finding_injury=False)
+                while not (layout or manager.action_count >= max_search_action_cnt):
                     manager.update()
                     if manager.action_count % 100 == 0:
                         logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
                                    'Edge' if depart_from_edge else 'Center', robot_type.__name__, robot_cnt,
-                                   'Return', *layout.report(), manager.report_gather(), *manager.report_search())
+                                   'Search', *layout.report(), 0, *manager.report_search())
                 logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
                            'Edge' if depart_from_edge else 'Center', robot_type.__name__, robot_cnt,
-                           'ReturnFinished', *layout.report(), manager.report_gather(), *manager.report_search())
+                           'SearchFinished', *layout.report(), 0, *manager.report_search())
+                if robot_type != Robot and robot_type != RobotUsingGas:
+                    manager.enter_gathering_mode()
+                    while not (
+                            manager or manager.action_count - manager.first_injury_action_count >= max_return_action_cnt):
+                        manager.update()
+                        if manager.action_count % 100 == 0:
+                            logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
+                                       'Edge' if depart_from_edge else 'Center', robot_type.__name__, robot_cnt,
+                                       'Return', *layout.report(), manager.report_gather(), *manager.report_search())
+                    logger.log(i, site_width, site_height, generator.room_cnt, generator.injuries,
+                               'Edge' if depart_from_edge else 'Center', robot_type.__name__, robot_cnt,
+                               'ReturnFinished', *layout.report(), manager.report_gather(), *manager.report_search())
         except:
-            with lock:
+            with StatisticRunner.lock:
                 if not os.path.exists("debug"):
                     os.mkdir("debug")
             with open(f"debug/gen_dbg_{i}.pkl", "wb") as file:
@@ -70,13 +78,8 @@ def run(i, site_width, site_height, generator, logger_type, depart_from_edge, ro
             import traceback
             traceback.print_exc()
 
-
-class StatisticRunner(AbstractRunner):
-    def __init__(self, logger_type):
-        super().__init__(logger_type)
-
     @utils.timed
-    def run(self):
+    def start(self):
         site_width, site_height, room_cnt, injury_cnt, max_search_action_cnt, max_return_action_cnt = \
             120, 60, 120, 10, 4000, 1000  # large
         # 80, 40, 60, 10, 2000, 500  # medium
@@ -93,10 +96,10 @@ class StatisticRunner(AbstractRunner):
                     continue
                 for robot_cnt in (2, 4, 6, 8, 10):
                     for robot_type in (RandomRobot, Robot, RobotUsingSound, RobotUsingGas, RobotUsingGasAndSound):
-                        workers.append(p.apply_async(run, (
+                        workers.append(p.apply_async(StatisticRunner.run, (
                                             i, site_width, site_height, generator, self.logger_type, False, robot_type,
                                             robot_cnt, max_search_action_cnt, max_return_action_cnt)))
-                        workers.append(p.apply_async(run, (
+                        workers.append(p.apply_async(StatisticRunner.run, (
                                             i, site_width, site_height, generator, self.logger_type, True, robot_type,
                                             robot_cnt, max_search_action_cnt, max_return_action_cnt)))
             cnt = len(workers)
@@ -107,9 +110,9 @@ class StatisticRunner(AbstractRunner):
 
 class GatheringStatisticRunner(AbstractRunner):
     def __init__(self, logger_type):
-        super().__init__(logger_type)
+        super().__init__(logger_type, enable_display=False)
 
-    def run(self):
+    def start(self):
         robot_cnt = 8
         for i in range(config.MAX_ITER):
             site_width, site_height, room_cnt, injury_cnt, robot_type = 120, 60, 120, 1, RobotUsingGasAndSound
@@ -140,12 +143,7 @@ class GatheringStatisticRunner(AbstractRunner):
 
 
 class DebugRunner(AbstractRunner):
-    def __init__(self):
-        super().__init__()
-        pygame.init()
-        pygame.display.set_caption("Simulation")
-
-    def run(self):
+    def start(self):
         with open("debug/gen_dbg.pkl", "rb") as file:
             generator: SiteGenerator = pickle.load(file)
         layout = Layout.from_generator(generator, depart_from_edge=False)
@@ -164,12 +162,7 @@ class DebugRunner(AbstractRunner):
 
 
 class TestRunner(AbstractRunner):
-    def __init__(self):
-        super().__init__()
-        pygame.init()
-        pygame.display.set_caption("Simulation")
-
-    def run(self):
+    def start(self):
         layout = Layout.from_file("assets/empty_room.lay")
         manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 4,
                                               depart_from_edge=True, act_after_finding_injury=False)
@@ -188,11 +181,9 @@ class TestRunner(AbstractRunner):
 class PresentationRunner(AbstractRunner):
     def __init__(self):
         super().__init__()
-        pygame.init()
-        pygame.display.set_caption("Simulation")
         self.generator = SiteGenerator(40, 20, 30, 10)
 
-    def run(self):
+    def start(self):
         try:
             layout = Layout.from_generator(self.generator, depart_from_edge=False)
             manager = SpreadingRobotManager(RobotUsingGas, self.logger, layout, 4,
@@ -234,12 +225,7 @@ class PresentationRunner(AbstractRunner):
 
 
 class PresentationFileRunner(AbstractRunner):
-    def __init__(self):
-        super().__init__()
-        pygame.init()
-        pygame.display.set_caption("Simulation")
-
-    def run(self):
+    def start(self):
         layout = Layout.from_file("assets/newmainbuildinghalfhalf.lay")
         manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 4,
                                               depart_from_edge=False, act_after_finding_injury=False)
@@ -255,12 +241,7 @@ class PresentationFileRunner(AbstractRunner):
 
 
 class DebugPresentationRunner(AbstractRunner):
-    def __init__(self):
-        super().__init__()
-        pygame.init()
-        pygame.display.set_caption("Simulation")
-
-    def run(self):
+    def start(self):
         with open("debug/gen_dbg.pkl", "rb") as file:
             generator: SiteGenerator = pickle.load(file)
         layout = Layout.from_generator(generator, depart_from_edge=False)
@@ -281,13 +262,11 @@ class DebugPresentationRunner(AbstractRunner):
 class StatisticPresentationRunner(AbstractRunner):
     def __init__(self):
         super().__init__(LoggerType.File)
-        pygame.init()
-        pygame.display.set_caption("Simulation")
         self.robot_cnt = 8
         site_width, site_height, room_cnt, injury_cnt, self.robot_type = 120, 60, 120, 1, RobotUsingGasAndSound
         self.generator = SiteGenerator(site_width, site_height, room_cnt, injury_cnt)
 
-    def run(self):
+    def start(self):
         try:
             layout = Layout.from_generator(self.generator, depart_from_edge=False)
             manager = RandomSpreadingRobotManager(self.robot_type, self.logger, layout, self.robot_cnt,
@@ -336,4 +315,4 @@ class StatisticPresentationRunner(AbstractRunner):
 
 if __name__ == '__main__':
     runner = PresentationRunner()
-    runner.run()
+    runner.start()

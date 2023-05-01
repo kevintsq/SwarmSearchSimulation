@@ -36,7 +36,23 @@ class AbstractRobotManager(ABC):
     def enter_gathering_mode(self):
         self.first_injury_action_count = self.action_count
         for robot in self.robots:
-            robot.state.transfer_when_need_to_gather()  # OK
+            if isinstance(robot, GatherableRobot):
+                robot.state.transfer_when_need_to_gather()
+
+    def report_macro_states(self):
+        just_started_cnt = 0
+        following_wall_cnt = 0
+        last_just_start_cnt = self.last_just_start_count
+        last_following_wall_cnt = self.last_following_wall_count
+        for robot in self.robots:
+            if robot.state == robot.just_started_state:
+                just_started_cnt += 1
+            elif robot.state == robot.following_wall_state:
+                following_wall_cnt += 1
+        self.last_just_start_count = just_started_cnt
+        self.last_following_wall_count = following_wall_cnt
+        return self.action_count, just_started_cnt, following_wall_cnt,\
+            just_started_cnt - last_just_start_cnt, following_wall_cnt - last_following_wall_cnt
 
     def report_macro_states(self):
         just_started_cnt = 0
