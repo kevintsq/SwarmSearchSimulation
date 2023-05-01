@@ -11,6 +11,7 @@ class AbstractState:
         return self.__robot
 
     def transfer_to_next_state(self):
+        """Default FSM that does not support gathering."""
         self.__robot.attempt_go_front()
         if self.__robot.is_colliding_wall():
             self.transfer_when_colliding_wall()
@@ -18,10 +19,8 @@ class AbstractState:
             self.transfer_when_colliding_another_robot()
         elif not self.__robot.is_moving_along_wall():  # Needs Turning
             self.transfer_when_not_following_wall()
-        elif self.__robot.is_found_injuries():
+        elif self.__robot.has_found_injuries():
             self.transfer_when_found_injuries()
-        elif self.__robot.is_others_found_injuries():
-            self.transfer_when_need_to_gather()
         else:
             self.__robot.commit_go_front()
 
@@ -49,21 +48,8 @@ class AbstractState:
 
     def transfer_when_found_injuries(self):
         self.__robot.commit_go_front()
-        self.__robot.in_room = True
-        for injury in self.__robot.found_injuries:
-            if not injury.rescued:  # OK
-                self.__robot.rescue_count += 1
-                injury.update()
         self.__robot.mission_complete = True
         self.__robot.state = self.__robot.found_injury_state
-
-    def transfer_when_need_to_gather(self):
-        self.__robot.commit_go_front()
-        if not self.__robot.initial_gather_mode:
-            self.__robot.gathering_position = self.__robot.background.departure_position
-            self.__robot.found_injuries = [self.__robot.background.departure_place]
-        self.__robot.state = self.__robot.gathering_state
-        self.__robot.collide_turn_function = None  # because need to be updated
 
     def __str__(self):
         return self.__class__.__name__
@@ -76,3 +62,37 @@ class AbstractState:
             return self.__class__.__name__ == other.__class__.__name__
         else:
             return False
+
+
+class GatherableAbstractState(AbstractState):
+    def transfer_to_next_state(self):
+        """Default FSM that supports gathering."""
+        robot = self.get_robot()
+        robot.attempt_go_front()
+        if robot.is_colliding_wall():
+            self.transfer_when_colliding_wall()
+        elif robot.is_colliding_another_robot():
+            self.transfer_when_colliding_another_robot()
+        elif not robot.is_moving_along_wall():  # Needs Turning
+            self.transfer_when_not_following_wall()
+        elif robot.has_found_injuries():
+            self.transfer_when_found_injuries()
+        elif robot.others_have_found_injuries():
+            self.transfer_when_need_to_gather()
+        else:
+            robot.commit_go_front()
+
+    def transfer_when_need_to_gather(self):
+        robot = self.get_robot()
+        robot.commit_go_front()
+        if not robot.act_after_finding_injury:
+            robot.gathering_position = robot.background.departure_position
+            robot.found_injuries = [robot.background.departure_place]
+        robot.state = robot.gathering_state
+        robot.collide_turn_function = None  # because need to be updated
+
+    def transfer_when_finish_gathering(self):
+        robot = self.get_robot()
+        robot.commit_go_front()
+        robot.mission_complete = True
+        robot.state = robot.found_injury_state

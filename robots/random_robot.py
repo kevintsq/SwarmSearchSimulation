@@ -1,20 +1,16 @@
-import random
-
-from robots.robot import Robot
-from state import *
+from robots.robot import *
 
 
-class RandomRobot(Robot):
-    class JustStartedState(AbstractState):
-        def __init__(self, robot):
-            super().__init__(robot)
-
+class RandomRobot(GatherableRobot):
+    class JustStartedState(GatherableAbstractState):
         def transfer_to_next_state(self):
-            robot = self.get_robot()
+            robot: RandomRobot = self.get_robot()
             robot.attempt_go_front()
             if robot.is_colliding_wall() or robot.is_colliding_another_robot():
                 robot.turn_to_azimuth(random.randint(-179, 180))
-            elif robot.is_others_found_injuries():
+            elif robot.has_found_injuries():
+                self.transfer_when_found_injuries()
+            elif robot.others_have_found_injuries():
                 self.transfer_when_need_to_gather()
             else:
                 choice = random.choice((robot.turn_to_azimuth, robot.commit_go_front))
@@ -24,16 +20,12 @@ class RandomRobot(Robot):
                 else:
                     choice()
 
-    class GatheringState(AbstractState):
-        def __init__(self, robot):
-            super().__init__(robot)
-
+    class GatheringState(GatherableAbstractState):
         def transfer_to_next_state(self):
             robot: RandomRobot = self.get_robot()
             robot.attempt_go_front()
-            if robot.is_finish_gathering():
-                robot.mission_complete = True
-                robot.state = robot.found_injury_state
+            if robot.has_finished_gathering():
+                self.transfer_when_finish_gathering()
             elif robot.is_colliding_wall() or robot.is_colliding_another_robot():
                 robot.turn_to_azimuth(random.randint(-179, 180))
             else:
@@ -43,7 +35,3 @@ class RandomRobot(Robot):
                     choice(random.randint(-179, 180))  # OK
                 else:
                     choice()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.gathering_state = self.GatheringState(self)
