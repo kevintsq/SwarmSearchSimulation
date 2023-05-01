@@ -6,17 +6,33 @@ from psutil import cpu_count
 from logger import *
 from robot_manager import *
 
-lock = Lock()
-
 
 class AbstractRunner(ABC):
     def __init__(self, logger_type=LoggerType.SQLite3):
         self.logger_type = logger_type
         self.logger = Logger.get_logger(logger_type, reset=True)
+        self.frame_rate = config.DISPLAY_FREQUENCY
 
     @abstractmethod
     def run(self, *args, **kwargs):
         pass
+
+    def should_quit(self, *args, **kwargs):
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                # self.logger.stop()
+                return
+            elif event.type == KEYDOWN:
+                if event.key == K_SPACE:
+                    config.PAUSE = not config.PAUSE
+                if event.key == K_UP and self.frame_rate < config.DISPLAY_FREQUENCY:
+                    self.frame_rate += 5
+                if event.key == K_DOWN and self.frame_rate > 5:
+                    self.frame_rate -= 5
+
+
+lock = Lock()
 
 
 def run(i, site_width, site_height, generator, logger_type, depart_from_edge, robot_type, robot_cnt,
@@ -177,46 +193,48 @@ class PresentationRunner(AbstractRunner):
         super().__init__()
         pygame.init()
         pygame.display.set_caption("Simulation")
+        self.generator = SiteGenerator(40, 20, 30, 10)
 
     def run(self):
-        generator = SiteGenerator(40, 20, 30, 10)
         try:
-            layout = Layout.from_generator(generator, depart_from_edge=False)
+            layout = Layout.from_generator(self.generator, depart_from_edge=False)
             manager = SpreadingRobotManager(RobotUsingGas, self.logger, layout, 4,
                                             depart_from_edge=False, initial_gather_mode=False)
             clock = pygame.time.Clock()
-            frame_rate = config.DISPLAY_FREQUENCY
-            while True:
-                for event in pygame.event.get():
-                    if event.type == QUIT:
-                        if not os.path.exists("debug"):
-                            os.mkdir("debug")
-                        with open("debug/gen_dbg.pkl", "wb") as file:
-                            pickle.dump(generator, file)
-                        pygame.quit()
-                        # self.logger.stop()
-                        return
-                    elif event.type == KEYDOWN:
-                        if event.key == K_SPACE:
-                            config.PAUSE = not config.PAUSE
-                        if event.key == K_UP and frame_rate < config.DISPLAY_FREQUENCY:
-                            frame_rate += 5
-                        if event.key == K_DOWN and frame_rate > 5:
-                            frame_rate -= 5
+            while not self.should_quit():
                 if not config.PAUSE:
                     if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
                         config.PAUSE = True
                     layout.update()
                     manager.update()
                     pygame.display.update()
-                    # clock.tick(frame_rate)
+                    clock.tick(self.frame_rate)
         except:
             if not os.path.exists("debug"):
                 os.mkdir("debug")
             with open("debug/gen_dbg.pkl", "wb") as file:
-                pickle.dump(generator, file)
+                pickle.dump(self.generator, file)
             import traceback
             traceback.print_exc()
+
+    def should_quit(self):
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                if not os.path.exists("debug"):
+                    os.mkdir("debug")
+                with open("debug/gen_dbg.pkl", "wb") as file:
+                    pickle.dump(self.generator, file)
+                pygame.quit()
+                # self.logger.stop()
+                return True
+            elif event.type == KEYDOWN:
+                if event.key == K_SPACE:
+                    config.PAUSE = not config.PAUSE
+                if event.key == K_UP and self.frame_rate < config.DISPLAY_FREQUENCY:
+                    self.frame_rate += 5
+                if event.key == K_DOWN and self.frame_rate > 5:
+                    self.frame_rate -= 5
+        return False
 
 
 class PresentationFileRunner(AbstractRunner):
@@ -231,27 +249,14 @@ class PresentationFileRunner(AbstractRunner):
             manager = RandomSpreadingRobotManager(RobotUsingGasAndSound, self.logger, layout, 4,
                                                   depart_from_edge=False, initial_gather_mode=False)
             clock = pygame.time.Clock()
-            frame_rate = config.DISPLAY_FREQUENCY
-            while True:
-                for event in pygame.event.get():
-                    if event.type == QUIT:
-                        pygame.quit()
-                        # self.logger.stop()
-                        return
-                    elif event.type == KEYDOWN:
-                        if event.key == K_SPACE:
-                            config.PAUSE = not config.PAUSE
-                        if event.key == K_UP and frame_rate < config.DISPLAY_FREQUENCY:
-                            frame_rate += 5
-                        if event.key == K_DOWN and frame_rate > 5:
-                            frame_rate -= 5
+            while not self.should_quit():
                 if not config.PAUSE:
                     # if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
                     #     config.PAUSE = True
                     layout.update()
                     manager.update()
                     pygame.display.update()
-                    # clock.tick(frame_rate)
+                    clock.tick(self.frame_rate)
         except:
             import traceback
             traceback.print_exc()
@@ -271,19 +276,7 @@ class DebugPresentationRunner(AbstractRunner):
                                               depart_from_edge=False, initial_gather_mode=False)
         clock = pygame.time.Clock()
         frame_rate = config.DISPLAY_FREQUENCY
-        while True:
-            for event in pygame.event.get():
-                if event.type == QUIT:
-                    pygame.quit()
-                    # self.logger.stop()
-                    return
-                elif event.type == KEYDOWN:
-                    if event.key == K_SPACE:
-                        config.PAUSE = not config.PAUSE
-                    if event.key == K_UP and frame_rate < config.DISPLAY_FREQUENCY:
-                        frame_rate += 5
-                    if event.key == K_DOWN and frame_rate > 5:
-                        frame_rate -= 5
+        while not self.should_quit():
             if all(layout.rooms) and all(layout.injuries):  # have been visited and rescued
                 config.PAUSE = True
             if not config.PAUSE:
@@ -298,76 +291,60 @@ class StatisticPresentationRunner(AbstractRunner):
         super().__init__()
         pygame.init()
         pygame.display.set_caption("Simulation")
+        self.robot_cnt = 2
+        site_width, site_height, room_cnt, injury_cnt, self.robot_type = 120, 60, 120, 10, RobotUsingGasAndSound
+        self.generator = SiteGenerator(site_width, site_height, room_cnt, injury_cnt)
 
     def run(self):
-        robot_cnt = 2
-        site_width, site_height, room_cnt, injury_cnt, robot_type = 120, 60, 120, 10, RobotUsingGasAndSound
-        generator = SiteGenerator(site_width, site_height, room_cnt, injury_cnt)
         try:
-            layout = Layout.from_generator(generator, depart_from_edge=False)
-            manager = RandomSpreadingRobotManager(robot_type, self.logger, layout, robot_cnt,
+            layout = Layout.from_generator(self.generator, depart_from_edge=False)
+            manager = RandomSpreadingRobotManager(self.robot_type, self.logger, layout, self.robot_cnt,
                                                   depart_from_edge=False, initial_gather_mode=False)
             clock = pygame.time.Clock()
-            frame_rate = config.DISPLAY_FREQUENCY
             while not (layout or manager.action_count >= 500):
-                for event in pygame.event.get():
-                    if event.type == QUIT:
-                        if not os.path.exists("debug"):
-                            os.mkdir("debug")
-                        with open(f"debug/gen_dbg.pkl", "wb") as file:
-                            pickle.dump(generator, file)
-                        pygame.quit()
-                        return
-                    elif event.type == KEYDOWN:
-                        if event.key == K_SPACE:
-                            config.PAUSE = not config.PAUSE
-                        if event.key == K_UP and frame_rate < config.DISPLAY_FREQUENCY:
-                            frame_rate += 5
-                        if event.key == K_DOWN and frame_rate > 5:
-                            frame_rate -= 5
+                if self.should_quit():
+                    return
                 if not config.PAUSE:
                     layout.update()
                     manager.update()
                     pygame.display.update()
-                    clock.tick(frame_rate)
+                    clock.tick(self.frame_rate)
             manager.enter_gathering_mode()
             while not (manager or manager.action_count - manager.first_injury_action_count >= 500):
-                for event in pygame.event.get():
-                    if event.type == QUIT:
-                        if not os.path.exists("debug"):
-                            os.mkdir("debug")
-                        with open(f"debug/gen_dbg.pkl", "wb") as file:
-                            pickle.dump(generator, file)
-                        pygame.quit()
-                        return
-                    elif event.type == KEYDOWN:
-                        if event.key == K_SPACE:
-                            config.PAUSE = not config.PAUSE
-                        if event.key == K_UP and frame_rate < config.DISPLAY_FREQUENCY:
-                            frame_rate += 5
-                        if event.key == K_DOWN and frame_rate > 5:
-                            frame_rate -= 5
+                if self.should_quit():
+                    return
                 if not config.PAUSE:
                     layout.update()
                     manager.update()
                     pygame.display.update()
-                    clock.tick(frame_rate)
-            while True:
-                for event in pygame.event.get():
-                    if event.type == QUIT:
-                        if not os.path.exists("debug"):
-                            os.mkdir("debug")
-                        with open(f"debug/gen_dbg.pkl", "wb") as file:
-                            pickle.dump(generator, file)
-                        pygame.quit()
-                        return
+                    clock.tick(self.frame_rate)
+            while not self.should_quit():
+                pass
         except:
             if not os.path.exists("debug"):
                 os.mkdir("debug")
             with open(f"debug/gen_dbg.pkl", "wb") as file:
-                pickle.dump(generator, file)
+                pickle.dump(self.generator, file)
             import traceback
             traceback.print_exc()
+
+    def should_quit(self):
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                if not os.path.exists("debug"):
+                    os.mkdir("debug")
+                with open(f"debug/gen_dbg.pkl", "wb") as file:
+                    pickle.dump(self.generator, file)
+                pygame.quit()
+                return True
+            elif event.type == KEYDOWN:
+                if event.key == K_SPACE:
+                    config.PAUSE = not config.PAUSE
+                if event.key == K_UP and self.frame_rate < config.DISPLAY_FREQUENCY:
+                    self.frame_rate += 5
+                if event.key == K_DOWN and self.frame_rate > 5:
+                    self.frame_rate -= 5
+        return False
 
 
 if __name__ == '__main__':
