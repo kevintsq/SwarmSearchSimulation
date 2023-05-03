@@ -19,14 +19,14 @@ class Logger:
         Logger.__logger = Logger.get_logger(logger_type)
 
     @staticmethod
-    def get_logger(logger_type=LoggerType.SQLite3, robot_max_cnt=10, reset=False):
+    def get_logger(logger_type=LoggerType.SQLite3, robot_max_cnt=10, is_macro_model=False, reset=False):
         if Logger.__logger is None:
             if logger_type == LoggerType.SQLite3:
-                Logger.__logger = SQLite3Logger(robot_max_cnt, reset)
+                Logger.__logger = SQLite3Logger(robot_max_cnt, is_macro_model, reset)
             elif logger_type == LoggerType.MySQL:
-                Logger.__logger = MySQLLogger(robot_max_cnt, reset)
+                Logger.__logger = MySQLLogger(robot_max_cnt, is_macro_model, reset)
             else:
-                Logger.__logger = FileLogger(robot_max_cnt, reset)
+                Logger.__logger = FileLogger(robot_max_cnt, is_macro_model, reset)
         return Logger.__logger
 
     def __enter__(self):
@@ -37,24 +37,31 @@ class Logger:
 
 
 class AbstractLogger(ABC):
-    def __init__(self, robot_max_cnt=10):
-        self.attributes_with_type = {"no": "INT",
-                                     "site_width": "INT",
-                                     "site_height": "INT",
-                                     "room_cnt": "INT",
-                                     "injury_cnt": "INT",
-                                     "departure_position": "TEXT",
-                                     "robot_type": "TEXT",
-                                     "robot_cnt": "INT",
-                                     "mode": "TEXT",
-                                     "room_visited": "INT",
-                                     "injury_rescued": "INT",
-                                     "returned": "INT",
-                                     "total_action_cnt": "INT"}
-        for i in range(robot_max_cnt):
-            self.attributes_with_type[f"robot_{i}_visits"] = "INT"
-            self.attributes_with_type[f"robot_{i}_rescues"] = "INT"
-            self.attributes_with_type[f"robot_{i}_collides"] = "INT"
+    def __init__(self, robot_max_cnt=10, is_macro_model=False):
+        if is_macro_model:
+            self.attributes_with_type = {"Action": "INT",
+                                         "JustStarted": "INT",
+                                         "FollowingWall": "INT",
+                                         "JustStartedDelta": "INT",
+                                         "FollowingWallDelta": "INT"}
+        else:
+            self.attributes_with_type = {"no": "INT",
+                                         "site_width": "INT",
+                                         "site_height": "INT",
+                                         "room_cnt": "INT",
+                                         "injury_cnt": "INT",
+                                         "departure_position": "TEXT",
+                                         "robot_type": "TEXT",
+                                         "robot_cnt": "INT",
+                                         "mode": "TEXT",
+                                         "room_visited": "INT",
+                                         "injury_rescued": "INT",
+                                         "returned": "INT",
+                                         "total_action_cnt": "INT"}
+            for i in range(robot_max_cnt):
+                self.attributes_with_type[f"robot_{i}_visits"] = "INT"
+                self.attributes_with_type[f"robot_{i}_rescues"] = "INT"
+                self.attributes_with_type[f"robot_{i}_collides"] = "INT"
         self.attributes = tuple(self.attributes_with_type.keys())
 
     @abstractmethod
@@ -73,8 +80,8 @@ class AbstractLogger(ABC):
 
 
 class MySQLLogger(AbstractLogger):
-    def __init__(self, robot_max_cnt=10, reset=False):
-        super().__init__(robot_max_cnt)
+    def __init__(self, robot_max_cnt=10, is_macro_model=False, reset=False):
+        super().__init__(robot_max_cnt, is_macro_model)
 
         import mysql.connector
 
@@ -104,8 +111,8 @@ class MySQLLogger(AbstractLogger):
 
 
 class SQLite3Logger(AbstractLogger):
-    def __init__(self, robot_max_cnt, reset=False):
-        super().__init__(robot_max_cnt)
+    def __init__(self, robot_max_cnt, is_macro_model=False, reset=False):
+        super().__init__(robot_max_cnt, is_macro_model)
 
         import sqlite3
 
@@ -131,8 +138,8 @@ class SQLite3Logger(AbstractLogger):
 
 class FileLogger(AbstractLogger):
     """Must use a lock when using this logger in a multiprocessing environment!!!"""
-    def __init__(self, robot_max_cnt=10, reset=False):
-        super().__init__(robot_max_cnt)
+    def __init__(self, robot_max_cnt=10, is_macro_model=False, reset=False):
+        super().__init__(robot_max_cnt, is_macro_model)
 
         import logging
         from logging.handlers import QueueHandler, QueueListener

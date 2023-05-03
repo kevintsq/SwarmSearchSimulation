@@ -8,9 +8,9 @@ from robot_manager import *
 
 
 class AbstractRunner(ABC):
-    def __init__(self, logger_type=LoggerType.SQLite3, enable_display=True):
+    def __init__(self, logger_type=LoggerType.SQLite3, is_macro_model=False, enable_display=True):
         self.logger_type = logger_type
-        self.logger = Logger.get_logger(logger_type, reset=True)
+        self.logger = Logger.get_logger(logger_type, is_macro_model, reset=True)
         self.frame_rate = config.DISPLAY_FREQUENCY
         if enable_display:
             pygame.init()
@@ -96,16 +96,68 @@ class StatisticRunner(AbstractRunner):
                     continue
                 for robot_cnt in (2, 4, 6, 8, 10):
                     for robot_type in (RandomRobot, Robot, RobotUsingSound, RobotUsingGas, RobotUsingGasAndSound):
-                        workers.append(p.apply_async(StatisticRunner.run, (
+                        workers.append(p.apply_async(self.run, (
                                             i, site_width, site_height, generator, self.logger_type, False, robot_type,
                                             robot_cnt, max_search_action_cnt, max_return_action_cnt)))
-                        workers.append(p.apply_async(StatisticRunner.run, (
+                        workers.append(p.apply_async(self.run, (
                                             i, site_width, site_height, generator, self.logger_type, True, robot_type,
                                             robot_cnt, max_search_action_cnt, max_return_action_cnt)))
             cnt = len(workers)
             for i, worker in enumerate(workers):
                 worker.wait()
-                print(f"{i + 1:4} of {cnt} ({(i + 1) * 100 / cnt:6.2f}%) finished with status {worker.get()}.")
+                print(f"{i + 1:4} of {cnt} ({(i + 1) / cnt:6.2%}) finished with status {worker.get()}.")
+
+
+class MacroModelStatisticRunner(AbstractRunner):
+    lock = Lock()
+
+    def __init__(self, logger_type):
+        super().__init__(logger_type, enable_display=False)
+
+    @staticmethod
+    def run(i, site_width, site_height, generator, logger_type, depart_from_edge, robot_type, robot_cnt,
+            max_search_action_cnt, max_return_action_cnt):
+        try:
+            with Logger(logger_type) as logger:
+                layout = Layout.from_generator(generator, enable_display=False, depart_from_edge=depart_from_edge)
+                manager = RandomSpreadingRobotManager(robot_type, logger, layout, robot_cnt,
+                                                      depart_from_edge=depart_from_edge, act_after_finding_injury=False)
+                while not layout and manager.first_injury_action_count == 0 and manager.action_count < max_search_action_cnt:
+                    manager.update()
+                    if manager.action_count % 100 == 0:
+                        logger.log(*manager.report_macro_states())
+        except:
+            with MacroModelStatisticRunner.lock:
+                if not os.path.exists("debug"):
+                    os.mkdir("debug")
+            with open(f"debug/gen_dbg_{i}.pkl", "wb") as file:
+                pickle.dump(generator, file)
+            import traceback
+            traceback.print_exc()
+
+    @utils.timed
+    def start(self):
+        site_width, site_height, room_cnt, injury_cnt, max_search_action_cnt, max_return_action_cnt = \
+            120, 60, 120, 1, 4000, 1000  # large
+        # 80, 40, 60, 1, 2000, 500  # medium
+        # 60, 30, 30, 1, 1000, 250  # small
+        workers = []
+        with Pool(cpu_count(logical=False)) as p:
+            # Physical cores are used instead of logical ones because there are no benefits of using hyper-threading
+            # on the latest Intel processors.
+            for i in range(config.MAX_ITER):
+                try:
+                    generator = SiteGenerator(site_width, site_height, room_cnt, injury_cnt)
+                except:
+                    print(f"Generation {i} failed. Skipped.", file=sys.stderr)
+                    continue
+                workers.append(p.apply_async(self.run, (
+                        i, site_width, site_height, generator, self.logger_type, False, RobotUsingGasAndSound,
+                        8, max_search_action_cnt, max_return_action_cnt)))
+            cnt = len(workers)
+            for i, worker in enumerate(workers):
+                worker.wait()
+                print(f"{i + 1:4} of {cnt} ({(i + 1) / cnt:6.2%}) finished with status {worker.get()}.")
 
 
 class GatheringStatisticRunner(AbstractRunner):
