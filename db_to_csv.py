@@ -1,21 +1,21 @@
 import sqlite3
 import os
 
-# import mysql.connector
+import mysql.connector
 
 import config
 
-filename = 'results'
+filename = 'results_action_small_test'
 if not os.path.exists(config.RESULT_DIR):
     os.mkdir(config.RESULT_DIR)
-connection = sqlite3.connect(f'{config.RESULT_DIR}/{filename}.db')
-# connection = mysql.connector.connect(
-#     host=config.MYSQL_HOST,
-#     user=config.MYSQL_USER,
-#     password=config.MYSQL_PASSWORD
-# )
+# connection = sqlite3.connect(f'{config.RESULT_DIR}/{filename}.db')
+connection = mysql.connector.connect(
+    host=config.MYSQL_HOST,
+    user=config.MYSQL_USER,
+    password=config.MYSQL_PASSWORD
+)
 cursor = connection.cursor()
-# cursor.execute("USE results;")
+cursor.execute("USE results;")
 cursor.execute("SELECT * FROM results;")
 result = cursor.fetchall()
 with open(f"{config.RESULT_DIR}/{filename}.csv", "w", encoding="utf-8") as f:

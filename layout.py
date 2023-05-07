@@ -13,7 +13,7 @@ class Layout:
     """Simulation layout."""
 
     def __init__(self, site: np.ndarray, rooms: Optional[list] = None,
-                 injuries: Optional[list] = None, departure_position=None, enable_display=True):
+                 injuries: Optional[list] = None, departure_position=None, *, enable_display=True):
         """
         Creating a layout from a numpy.ndarray of site,
         and a list of rooms and injuries which are optional.
@@ -98,7 +98,7 @@ class Layout:
         return all(self.rooms) and all(self.injuries)
 
     @staticmethod
-    def from_file(filename, enable_display=True):
+    def from_file(filename, *, enable_display=True):
         """
         Factory method for creating a layout from a text file.
         TODO: Can be improved to automatically recognize rooms and injuries
@@ -116,7 +116,7 @@ class Layout:
         return Layout(site, enable_display=enable_display, departure_position=departure_position)
 
     @staticmethod
-    def from_generator(gen: SiteGenerator, enable_display=True, depart_from_edge=False):
+    def from_generator(gen: SiteGenerator, *, enable_display=True, depart_from_edge=False):
         """
         Factory method for creating a layout from a SiteGenerator.
         The interface provided from SiteGenerator is ugly, so we need some extra efforts here.
@@ -131,10 +131,12 @@ class Layout:
         assert len(injuries) == gen.injuries
         if depart_from_edge:
             x, y = gen.edge_departure_point
-            return Layout(gen.site_array, rooms, injuries, (int(y * Wall.SPAN_UNIT), int(x * Wall.SPAN_UNIT)), enable_display)
+            return Layout(gen.site_array, rooms, injuries, (int(y * Wall.SPAN_UNIT), int(x * Wall.SPAN_UNIT)),
+                          enable_display=enable_display)
         else:
             x, y = gen.central_departure_point
-            return Layout(gen.site_array, rooms, injuries, (int(y * Wall.SPAN_UNIT), int(x * Wall.SPAN_UNIT)), enable_display)
+            return Layout(gen.site_array, rooms, injuries, (int(y * Wall.SPAN_UNIT), int(x * Wall.SPAN_UNIT)),
+                          enable_display=enable_display)
 
     def update(self):
         """Redraw method that should be called for each frame."""

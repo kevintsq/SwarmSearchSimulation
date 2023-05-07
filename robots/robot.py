@@ -46,7 +46,7 @@ class Robot(pygame.sprite.Sprite):
             else:
                 robot.commit_go_front()
 
-    def __init__(self, robot_id, logger, group, background: Layout, position, azimuth=0, act_after_finding_injury=False):
+    def __init__(self, robot_id, logger, group, background: Layout, position, azimuth=0, *, act_after_finding_injury=False):
         super().__init__()
         self.id: int = robot_id
         self.logger = logger
@@ -114,7 +114,7 @@ class Robot(pygame.sprite.Sprite):
         self.old_rect = self.rect.copy()
         # self.logger.debug(f"[{self}] Turns to {self.azimuth}, {self.direction}.")
 
-    def turn_right(self, degree, update_collide_turn_func=False):
+    def turn_right(self, degree, *, update_collide_turn_func=False):
         if update_collide_turn_func:
             if 0 < degree < 180:
                 self.collide_turn_function = self.turn_right
@@ -124,7 +124,7 @@ class Robot(pygame.sprite.Sprite):
                 raise Exception(f"[{self}] Illegal degree ({degree}) to set self.collide_turn_function!")
         self.turn_to_azimuth(self.azimuth - degree)
 
-    def turn_left(self, degree, update_collide_turn_func=False):
+    def turn_left(self, degree, *, update_collide_turn_func=False):
         if update_collide_turn_func:
             if 0 < degree < 180:
                 self.collide_turn_function = self.turn_left
@@ -134,7 +134,7 @@ class Robot(pygame.sprite.Sprite):
                 raise Exception(f"[{self}] Illegal degree ({degree}) to set self.collide_turn_function!")
         self.turn_to_azimuth(self.azimuth + degree)
 
-    def turn_back(self, reset_collide_turn_func=False):
+    def turn_back(self, *, reset_collide_turn_func=False):
         if reset_collide_turn_func:
             if self.collide_turn_function == self.turn_left:
                 self.collide_turn_function = self.turn_right

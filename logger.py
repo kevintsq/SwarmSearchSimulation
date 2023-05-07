@@ -19,14 +19,14 @@ class Logger:
         Logger.__logger = Logger.get_logger(logger_type)
 
     @staticmethod
-    def get_logger(logger_type=LoggerType.SQLite3, robot_max_cnt=10, is_macro_model=False, reset=False):
+    def get_logger(logger_type=LoggerType.SQLite3, robot_max_cnt=10, *, is_macro_model=False, reset=False):
         if Logger.__logger is None:
             if logger_type == LoggerType.SQLite3:
-                Logger.__logger = SQLite3Logger(robot_max_cnt, is_macro_model, reset)
+                Logger.__logger = SQLite3Logger(robot_max_cnt, is_macro_model=is_macro_model, reset=reset)
             elif logger_type == LoggerType.MySQL:
-                Logger.__logger = MySQLLogger(robot_max_cnt, is_macro_model, reset)
+                Logger.__logger = MySQLLogger(robot_max_cnt, is_macro_model=is_macro_model, reset=reset)
             else:
-                Logger.__logger = FileLogger(robot_max_cnt, is_macro_model, reset)
+                Logger.__logger = FileLogger(robot_max_cnt, is_macro_model=is_macro_model, reset=reset)
         return Logger.__logger
 
     def __enter__(self):
@@ -37,7 +37,7 @@ class Logger:
 
 
 class AbstractLogger(ABC):
-    def __init__(self, robot_max_cnt=10, is_macro_model=False):
+    def __init__(self, robot_max_cnt=10, *, is_macro_model=False):
         if is_macro_model:
             self.attributes_with_type = {"Action": "INT",
                                          "JustStarted": "INT",
@@ -80,8 +80,8 @@ class AbstractLogger(ABC):
 
 
 class MySQLLogger(AbstractLogger):
-    def __init__(self, robot_max_cnt=10, is_macro_model=False, reset=False):
-        super().__init__(robot_max_cnt, is_macro_model)
+    def __init__(self, robot_max_cnt=10, *, is_macro_model=False, reset=False):
+        super().__init__(robot_max_cnt, is_macro_model=is_macro_model)
 
         import mysql.connector
 
@@ -111,8 +111,8 @@ class MySQLLogger(AbstractLogger):
 
 
 class SQLite3Logger(AbstractLogger):
-    def __init__(self, robot_max_cnt, is_macro_model=False, reset=False):
-        super().__init__(robot_max_cnt, is_macro_model)
+    def __init__(self, robot_max_cnt=10, *, is_macro_model=False, reset=False):
+        super().__init__(robot_max_cnt, is_macro_model=is_macro_model)
 
         import sqlite3
 
@@ -138,8 +138,8 @@ class SQLite3Logger(AbstractLogger):
 
 class FileLogger(AbstractLogger):
     """Must use a lock when using this logger in a multiprocessing environment!!!"""
-    def __init__(self, robot_max_cnt=10, is_macro_model=False, reset=False):
-        super().__init__(robot_max_cnt, is_macro_model)
+    def __init__(self, robot_max_cnt=10, *, is_macro_model=False, reset=False):
+        super().__init__(robot_max_cnt, is_macro_model=is_macro_model)
 
         import logging
         from logging.handlers import QueueHandler, QueueListener

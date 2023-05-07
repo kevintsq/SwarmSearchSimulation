@@ -11,7 +11,7 @@ import numpy as np
 
 
 class SiteGenerator:
-    def __init__(self, width=40, height=20, room_num=30, injuries=10, delete_fill=False):
+    def __init__(self, width=40, height=20, room_num=30, injuries=10, *, delete_fill=False):
         self.site = []
         self.site_array = np.zeros((height, width))
         self.v_corridor = []
@@ -36,7 +36,7 @@ class SiteGenerator:
         self.inner_door_sign = "#"
         self.corridor_sign = " "
 
-        self.generate(delete_fill)
+        self.generate(delete_fill=delete_fill)
 
     def print(self):
         for i in range(0, self.height):
@@ -79,7 +79,7 @@ class SiteGenerator:
             return False
         return True
 
-    def generate(self, delete_fill=False):
+    def generate(self, *, delete_fill=False):
         # 创建数组
         self.site = [[self.wall_sign for _ in range(self.width - 2)] for _ in range(self.height - 2)]
         # 生成走廊
@@ -500,7 +500,7 @@ class SiteGenerator:
 
 
 if __name__ == '__main__':
-    gen = SiteGenerator(40, 20, 10, 10, True)
+    gen = SiteGenerator(40, 20, 10, 10, delete_fill=True)
     gen.print_original()
     print(gen.rooms)
     print(gen.injuries)

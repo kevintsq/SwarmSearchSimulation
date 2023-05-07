@@ -14,7 +14,8 @@ class RobotUsingSound(GatherableRobot):
             if robot.azimuth % 90 == 0:
                 robot.turn_right(90 if diff > 0 else -90, update_collide_turn_func=True)
             else:
-                robot.turn_right(robot.azimuth % 90 if diff > 0 else robot.azimuth % 90 - 90, True)
+                robot.turn_right(robot.azimuth % 90 if diff > 0 else robot.azimuth % 90 - 90,
+                                 update_collide_turn_func=True)
             robot.state = robot.following_wall_state
 
     class GatheringState(GatherableRobot.GatheringState):
@@ -29,7 +30,8 @@ class RobotUsingSound(GatherableRobot):
                 if robot.azimuth % 90 == 0:
                     robot.turn_right(90 if diff > 0 else -90, update_collide_turn_func=True)
                 else:
-                    robot.turn_right(robot.azimuth % 90 if diff > 0 else robot.azimuth % 90 - 90, True)
+                    robot.turn_right(robot.azimuth % 90 if diff > 0 else robot.azimuth % 90 - 90,
+                                     update_collide_turn_func=True)
                 robot.attempt_go_front()
                 if robot.is_colliding_wall():
                     robot.cancel_go_front()
