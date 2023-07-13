@@ -56,6 +56,17 @@ class RobotUsingSound(GatherableRobot):
         _, azimuth = vector.as_polar()
         return int(azimuth)
 
+    def get_weighted_azimuth_according_to_others(self):
+        vector = pygame.Vector2()
+        for robot in self.group:
+            if robot != self:
+                diff_vec = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+                dist, _ = diff_vec.as_polar()
+                vector += diff_vec / dist
+        vector: pygame.Vector2 = -vector
+        _, azimuth = vector.as_polar()
+        return int(azimuth)
+
     def get_farthest_vector(self, group):
         max_vector = pygame.Vector2()
         for robot in group:

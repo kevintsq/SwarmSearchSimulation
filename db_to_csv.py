@@ -5,7 +5,7 @@ import mysql.connector
 
 import config
 
-filename = 'results_action_small_test'
+filename = 'results'
 if not os.path.exists(config.RESULT_DIR):
     os.mkdir(config.RESULT_DIR)
 # connection = sqlite3.connect(f'{config.RESULT_DIR}/{filename}.db')
