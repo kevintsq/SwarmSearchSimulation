@@ -37,7 +37,8 @@ class RobotUsingGasAndSound(RobotUsingGas, RobotUsingSound):
                 if robot.azimuth % 90 == 0:
                     robot.turn_right(90 if diff > 0 else -90, update_collide_turn_func=True)
                 else:
-                    robot.turn_right(robot.azimuth % 90 if diff > 0 else robot.azimuth % 90 - 90, True)
+                    robot.turn_right(robot.azimuth % 90 if diff > 0 else robot.azimuth % 90 - 90,
+                                     update_collide_turn_func=True)
                 robot.attempt_go_front()
                 if robot.is_colliding_wall():
                     robot.cancel_go_front()
@@ -67,5 +68,24 @@ class RobotUsingGasAndSound(RobotUsingGas, RobotUsingSound):
                 if robot != self:
                     vector += utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
             vector: pygame.Vector2 = -vector  # OK to use __neg__
+            _, azimuth = vector.as_polar()
+            return int(azimuth)
+
+    def get_weighted_azimuth_according_to_others(self):
+        if self.is_revisiting_places() and self.just_visited_place.visit_count >= 3:
+            self.just_visited_place.visit_count = 0
+            self.just_followed_wall = None
+            self.collide_turn_function = None
+            # return random.randint(-179, 180)
+            self.original_azimuth = utils.normalize_azimuth(self.original_azimuth + 180)
+            return self.original_azimuth  # may be modified
+        else:
+            vector = pygame.Vector2()
+            for robot in self.group:
+                if robot != self:
+                    diff_vec = utils.pygame_cartesian_diff_vec(self.position, robot.rect.center)
+                    dist, _ = diff_vec.as_polar()
+                    vector += diff_vec / dist
+            vector: pygame.Vector2 = -vector
             _, azimuth = vector.as_polar()
             return int(azimuth)
